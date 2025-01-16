@@ -1,5 +1,7 @@
 # encoding:utf-8
 from statsbombpy import sb
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="statsbombpy.api_client")
 
 
 
@@ -33,4 +35,16 @@ def get_matches(competition_id, season_id):
     '''
     matches = sb.matches(competition_id=competition_id, season_id=season_id)
     return matches
+
+
+def get_events(match_id):
+    '''
+    Fetch the events for a specific match.
+    params:
+        match_id (int): The match_id.
+    returns:
+        DataFrame: A DataFrame containing the events.
+    '''
+    events = sb.events(match_id=match_id)
+    return events
 
