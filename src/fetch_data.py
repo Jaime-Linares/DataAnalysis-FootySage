@@ -21,4 +21,16 @@ def get_competition_id_and_season_id(competition_name, competition_gender, seaso
     season_id = competition['season_id'].values[0]
     return (competition_id, season_id)
 
-    
+
+def get_matches(competition_id, season_id):
+    '''
+    Fetch the matches for a specific competition and season.
+    params:
+        competition_id (int): The competition_id.
+        season_id (int): The season_id.
+    returns:
+        DataFrame: A DataFrame containing the matches.
+    '''
+    matches = sb.matches(competition_id=competition_id, season_id=season_id)
+    return matches
+
