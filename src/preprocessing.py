@@ -138,14 +138,17 @@ def _average_distance_to_goal_of_shots_on_target(events_df, team):
     '''
     shots_on_target = _shots_on_target_df(events_df, team).copy()
     shots_on_target = shots_on_target[shots_on_target['location'].notnull()]
-    # calculamos la distancia de cada disparo al centro de la portería
-    goal_x, goal_y = 120, 40  # coordenadas del centro de la portería
-    shots_on_target['distance_to_goal'] = np.sqrt(
-        (goal_x - shots_on_target['location'].str[0])**2 + 
-        (goal_y - shots_on_target['location'].str[1])**2
-    )
-    # calculamos la media de las distancias
-    average_distance = shots_on_target['distance_to_goal'].mean()
+    if(shots_on_target.shape[0] > 0):   # si hay tiros a puerta
+        # calculamos la distancia de cada disparo al centro de la portería
+        goal_x, goal_y = 120, 40  # coordenadas del centro de la portería
+        shots_on_target['distance_to_goal'] = np.sqrt(
+            (goal_x - shots_on_target['location'].str[0])**2 + 
+            (goal_y - shots_on_target['location'].str[1])**2
+        )
+        # calculamos la media de las distancias
+        average_distance = shots_on_target['distance_to_goal'].mean()
+    else:   # si no hay tiros a puerta
+        average_distance = 120.0  # la long. del campo de fútbol de statsbomb
     return average_distance
 
 
