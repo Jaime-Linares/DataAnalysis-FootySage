@@ -106,6 +106,16 @@ def _process_match(events_df, home_team, away_team, winning_team):
         "yellow_cards_away": _num_cards_color_selected(events_df, away_team, "Yellow"),
         "red_cards_home": _num_cards_color_selected(events_df, home_team, "Red"),
         "red_cards_away": _num_cards_color_selected(events_df, away_team, "Red"),
+        ## presión
+        "pressures_home": _num_event_type(events_df, home_team, 'Pressure'),
+        "pressures_away": _num_event_type(events_df, away_team, 'Pressure'),
+        "counterpress_home": _num_counterpress(events_df, home_team),
+        "counterpress_away": _num_counterpress(events_df, away_team),
+        "pressures_in_attacking_third_home": _num_pressures_in_attacking_third(events_df, home_team),
+        "pressures_in_attacking_third_away": _num_pressures_in_attacking_third(events_df, away_team),
+        ## otros
+        "offsides_home": _num_offsides(events_df, home_team),
+        "offsides_away": _num_offsides(events_df, away_team),
         # equipo ganador
         "winning_team": winning_team,
     }
@@ -498,4 +508,50 @@ def _num_cards_color_selected(events_df, team, card_color):
             num_cards_color += events_df[(events_df['team'] == team) & (events_df['type'] == 'Bad Behaviour') & 
                                         (events_df['bad_behaviour_card'] == "Red Card")].shape[0]
     return num_cards_color
+
+
+def _num_counterpress(events_df, team):
+    '''
+    Calculate the number of counterpress for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of counterpress.
+    '''
+    num_counterpress = 0
+    if 'counterpress' in events_df.columns:
+        num_counterpress = events_df[(events_df['team'] == team) & (events_df['type'] == 'Pressure') & 
+                                     (events_df['counterpress'] == True)].shape[0]
+    return num_counterpress
+
+
+def _num_pressures_in_attacking_third(events_df, team):
+    '''
+    Calculate the number of pressures in the attacking third for a specific team.
+    Attacking third is defined as the area from 80 to 120 in x-axis and from 0 to 80 in y-axis.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of pressures in the attacking third.
+    '''
+    return events_df[(events_df['team'] == team) & (events_df['type'] == 'Pressure') &
+                     (events_df['location'].notnull()) &
+                     (events_df['location'].apply(lambda loc: isinstance(loc, list) and 80 <= loc[0] <= 120 and 0 <= loc[1] <= 80))].shape[0]
+
+
+def _num_offsides(events_df, team):
+    '''
+    Calculate the number of offsides for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of offsides.
+    '''
+    non_pass_offsides = events_df[(events_df['team'] == team) & (events_df['type'] == 'Offside')].shape[0]
+    pass_offsides = events_df[(events_df['team'] == team) & (events_df['type'] == 'Pass') &
+                              (events_df['pass_outcome'] == "Pass Offside")].shape[0]
+    return non_pass_offsides + pass_offsides
 
