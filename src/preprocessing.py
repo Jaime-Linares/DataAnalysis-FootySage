@@ -42,7 +42,7 @@ def _process_match(events_df, home_team, away_team, winning_team):
         dict: A dictionary containing the processed match.    
     '''
     metrics = {
-        # estadísticas de generales
+        # estadísticas de generales del partido
         ## tiros
         "total_shots_home": _num_event_type(events_df, home_team, 'Shot'),
         "total_shots_away": _num_event_type(events_df, away_team, 'Shot'),
@@ -62,9 +62,10 @@ def _process_match(events_df, home_team, away_team, winning_team):
         "shots_head_away": _num_shots_with_body_part(events_df, away_team, "Head"),
         "shots_other_home": _num_shots_with_body_part(events_df, home_team, "Other"),
         "shots_other_away": _num_shots_with_body_part(events_df, away_team, "Other"),
+        ## pases
+        # equipo ganador
         "winning_team": winning_team,
     }
-
     return metrics
 
 
@@ -90,10 +91,40 @@ def _ratio_shots_on_target(events_df, team):
         float: The ratio of shots on target.
     '''
     shots = _num_event_type(events_df, team, 'Shot')
-    shots_on_target = events_df[(events_df['team'] == team) & (events_df['type'] == 'Shot') & 
-                                (events_df['shot_outcome'].isin(["Goal","Saved","Saved To Post"]))].shape[0]
-
+    shots_on_target = _shots_on_target_df(events_df, team).shape[0]
     return shots_on_target / shots if shots > 0 else 0.0
+
+
+def _shots_on_target_df(events_df, team):
+    '''
+    Get the shots on target DataFrame for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:    
+        DataFrame: A DataFrame containing the shots on target
+    '''
+    # dataframe de los disparos a puerta claros
+    shots_on_target = events_df[(events_df['team'] == team) & (events_df['type'] == 'Shot') &
+                                (events_df['shot_outcome'].isin(["Goal", "Saved", "Saved To Post"]))
+                                ].copy()
+    # dataframes para ver si un tiro bloqueado iba a puerta o no mirando si el bloqueo es un save_block
+    blocked_shots = events_df[(events_df['type'] == 'Shot') & (events_df['team'] == team) &
+                              (events_df['shot_outcome'] == "Blocked") &
+                              (events_df['related_events'].notnull())  # para asegurar que tiene related_events
+                              ].copy()
+    blocked_shots['related_blocks'] = blocked_shots['related_events'].apply(
+        lambda rel_events: [event_id for event_id in rel_events 
+            if event_id in events_df['id'].values and 
+            events_df[events_df['id'] == event_id].iloc[0]['type'] == 'Block' and 
+            'block_save_block' in events_df.columns and
+            events_df[events_df['id'] == event_id].iloc[0]['block_save_block'] == True
+        ]
+    )
+    valid_blocked_shots = blocked_shots[blocked_shots['related_blocks'].str.len() > 0]
+    # concatenamos los disparos a puerta claros con los disparos bloqueados que iban a puerta
+    total_shots_on_target = pd.concat([shots_on_target, valid_blocked_shots], ignore_index=True)
+    return total_shots_on_target
 
 
 def _average_distance_to_goal_of_shots_on_target(events_df, team):
@@ -105,8 +136,7 @@ def _average_distance_to_goal_of_shots_on_target(events_df, team):
     returns:
         float: The average distance to goal of shots on target.
     '''
-    shots_on_target = events_df[(events_df['team'] == team) & (events_df['type'] == 'Shot') & 
-                                (events_df['shot_outcome'].isin(["Goal","Saved","Saved To Post"]))].copy()
+    shots_on_target = _shots_on_target_df(events_df, team).copy()
     shots_on_target = shots_on_target[shots_on_target['location'].notnull()]
     # calculamos la distancia de cada disparo al centro de la portería
     goal_x, goal_y = 120, 40  # coordenadas del centro de la portería
@@ -114,7 +144,6 @@ def _average_distance_to_goal_of_shots_on_target(events_df, team):
         (goal_x - shots_on_target['location'].str[0])**2 + 
         (goal_y - shots_on_target['location'].str[1])**2
     )
-
     # calculamos la media de las distancias
     average_distance = shots_on_target['distance_to_goal'].mean()
     return average_distance
