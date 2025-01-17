@@ -63,6 +63,20 @@ def _process_match(events_df, home_team, away_team, winning_team):
         "shots_other_home": _num_shots_with_body_part(events_df, home_team, "Other"),
         "shots_other_away": _num_shots_with_body_part(events_df, away_team, "Other"),
         ## pases
+        "total_passes_home": _num_event_type(events_df, home_team, 'Pass'),
+        "total_passes_away": _num_event_type(events_df, away_team, 'Pass'),
+        "pass_success_ratio_home": _ratio_sucess_passes(events_df, home_team),
+        "pass_success_ratio_away": _ratio_sucess_passes(events_df, away_team),
+        "key_passes_home": _num_key_passes(events_df, home_team),
+        "key_passes_away": _num_key_passes(events_df, away_team),
+        "passes_needed_to_make_a_shoot_home": _num_passes_needed_to_make_a_shoot(events_df, home_team),
+        "passes_needed_to_make_a_shoot_away": _num_passes_needed_to_make_a_shoot(events_df, away_team),
+        "crosses_home": _num_crosses(events_df, home_team),
+        "crosses_away": _num_crosses(events_df, away_team),
+        "cross_success_ratio_home": _ratio_success_crosses(events_df, home_team),
+        "cross_success_ratio_away": _ratio_success_crosses(events_df, away_team),
+        "corners_home": _num_corners(events_df, home_team),
+        "corners_away": _num_corners(events_df, away_team),
         # equipo ganador
         "winning_team": winning_team,
     }
@@ -213,4 +227,95 @@ def _num_shots_with_body_part(events_df, team, body_part):
                               (events_df['shot_body_part'].notnull()) &
                               (events_df['shot_body_part'] == body_part)].shape[0]
     return num_shots
+
+
+def _ratio_sucess_passes(events_df, team):
+    '''
+    Calculate the ratio of successful passes for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        float: The ratio of successful passes.
+    '''
+    total_passes = _num_event_type(events_df, team, 'Pass')
+    successful_passes = events_df[(events_df['team'] == team) & (events_df['type'] == 'Pass') &
+                                   (events_df['pass_outcome'].isnull())].shape[0]
+    return successful_passes / total_passes if total_passes > 0 else 0.0
+
+
+def _num_key_passes(events_df, team):
+    '''
+    Calculate the number of key passes for a specific team.
+    We consider a key pass to be one that assists a shot.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of key passes.
+    '''
+    num_key_passes = 0
+    if 'pass_assisted_shot_id' in events_df.columns:
+        num_key_passes = events_df[(events_df['team'] == team) & (events_df['type'] == 'Pass') &
+                                   (events_df['pass_outcome'].isnull()) &                       # pase exitoso           
+                                   (events_df['pass_assisted_shot_id'].notnull())].shape[0]     # pase asistente
+    return num_key_passes
+    
+def _num_passes_needed_to_make_a_shoot(events_df, team):
+    '''
+    Calculate the number of passes needed to make a shoot for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of passes needed to make a shoot.
+    '''
+    num_shots = _num_event_type(events_df, team, 'Shot')
+    num_passes = _num_event_type(events_df, team, 'Pass')
+    return num_passes / num_shots if num_shots > 0 else 0.0
+
+
+def _num_crosses(events_df, team):
+    '''
+    Calculate the number of crosses for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of crosses.
+    '''
+    num_crosses = 0
+    if 'pass_cross' in events_df.columns:
+        num_crosses = events_df[(events_df['team'] == team) & (events_df['type'] == 'Pass') &
+                                (events_df['pass_cross'] == True)].shape[0]
+    return num_crosses
+
+
+def _ratio_success_crosses(events_df, team):
+    '''
+    Calculate the ratio of successful crosses for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        float: The ratio of successful crosses.
+    '''
+    total_crosses = _num_crosses(events_df, team)
+    successful_crosses = events_df[(events_df['team'] == team) & (events_df['type'] == 'Pass') &
+                                   (events_df['pass_cross'] == True) &
+                                   (events_df['pass_outcome'].isnull())].shape[0]
+    return successful_crosses / total_crosses if total_crosses > 0 else 0.0
+
+
+def _num_corners(events_df, team):
+    '''
+    Calculate the number of corners for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of corners.
+    '''
+    return events_df[(events_df['team'] == team) & (events_df['type'] == 'Pass') &
+                     (events_df['pass_type'] == 'Corner')].shape[0]
 
