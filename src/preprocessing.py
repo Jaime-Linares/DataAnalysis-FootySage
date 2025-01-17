@@ -42,7 +42,7 @@ def _process_match(events_df, home_team, away_team, winning_team):
         dict: A dictionary containing the processed match.    
     '''
     metrics = {
-        # estadísticas de generales del partido
+        # estadísticas generales del partido
         ## tiros
         "total_shots_home": _num_event_type(events_df, home_team, 'Shot'),
         "total_shots_away": _num_event_type(events_df, away_team, 'Shot'),
@@ -77,6 +77,35 @@ def _process_match(events_df, home_team, away_team, winning_team):
         "cross_success_ratio_away": _ratio_success_crosses(events_df, away_team),
         "corners_home": _num_corners(events_df, home_team),
         "corners_away": _num_corners(events_df, away_team),
+        ## defensa
+        "interceptions_won_home": _num_interceptions_won(events_df, home_team),
+        "interceptions_won_away": _num_interceptions_won(events_df, away_team),
+        "recoveries_home": _num_recoveries(events_df, home_team),
+        "recoveries_away": _num_recoveries(events_df, away_team), 
+        "blocks_home": _num_event_type(events_df, home_team, 'Block'),
+        "blocks_away": _num_event_type(events_df, away_team, 'Block'),   
+        "duels_won_home": _num_duels_won(events_df, home_team),
+        "duels_won_away": _num_duels_won(events_df, away_team), 
+        "tackles_home": _num_tackles(events_df, home_team),
+        "tackles_away": _num_tackles(events_df, away_team),
+        "tackles_success_ratio_home": _ratio_success_tackles(events_df, home_team),
+        "tackles_success_ratio_away": _ratio_success_tackles(events_df, away_team),
+        "fouls_committed_home": _num_event_type(events_df, home_team, 'Foul Committed'),
+        "fouls_committed_away": _num_event_type(events_df, away_team, 'Foul Committed'),
+        "50_50_won_home": _num_50_50_won(events_df, home_team),
+        "50_50_won_away": _num_50_50_won(events_df, away_team),
+        "clearances_home": _num_event_type(events_df, home_team, 'Clearance'),
+        "clearances_away": _num_event_type(events_df, away_team, 'Clearance'),
+        "penaltys_committed_home": _num_penaltys_committed(events_df, home_team),
+        "penaltys_committed_away": _num_penaltys_committed(events_df, away_team),
+        "key_errors_home": _num_event_type(events_df, home_team, 'Error'),
+        "key_errors_away": _num_event_type(events_df, away_team, 'Error'),
+        "miscontrols_home": _num_event_type(events_df, home_team, 'Miscontrol'),
+        "miscontrols_away": _num_event_type(events_df, away_team, 'Miscontrol'),
+        "yellow_cards_home": _num_cards_color_selected(events_df, home_team, "Yellow"),
+        "yellow_cards_away": _num_cards_color_selected(events_df, away_team, "Yellow"),
+        "red_cards_home": _num_cards_color_selected(events_df, home_team, "Red"),
+        "red_cards_away": _num_cards_color_selected(events_df, away_team, "Red"),
         # equipo ganador
         "winning_team": winning_team,
     }
@@ -318,4 +347,155 @@ def _num_corners(events_df, team):
     '''
     return events_df[(events_df['team'] == team) & (events_df['type'] == 'Pass') &
                      (events_df['pass_type'] == 'Corner')].shape[0]
+
+
+def _num_interceptions_won(events_df, team):
+    '''
+    Calculate the number of interceptions won for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of interceptions won.
+    '''
+    num_interceptions_won = 0
+    if 'interception_outcome' in events_df.columns:
+        num_interceptions_won = events_df[(events_df['team'] == team) & (events_df['type'] == 'Interception') & 
+                                          (events_df['interception_outcome'].isin(["Success","Success In Play","Success Out","Won"]))].shape[0]
+    return num_interceptions_won
+
+
+def _num_recoveries(events_df, team):
+    '''
+    Calculate the number of recoveries for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of recoveries.
+    '''
+    num_recoveries = 0
+    if 'ball_recovery_offensive' in events_df.columns:
+        num_recoveries = events_df[(events_df['team'] == team) & (events_df['type'] == 'Ball Recovery') & 
+                                   (events_df['ball_recovery_offensive'] == True)].shape[0]
+    return num_recoveries
+
+
+def _num_duels_won(events_df, team):
+    '''
+    Calculate the number of duels won for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of duels won.
+    '''
+    num_duels_won = 0
+    if 'duel_outcome' in events_df.columns:
+        num_duels_won = events_df[(events_df['team'] == team) & (events_df['type'] == 'Duel') & 
+                                  (events_df['duel_outcome'].isin(["Won","Success","Success In Play","Success Out"]))].shape[0]
+    return num_duels_won
+
+
+def _num_tackles(events_df, team):
+    '''
+    Calculate the number of tackles for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of tackles.
+    '''
+    num_tackles = 0
+    if 'duel_type' in events_df.columns:
+        num_tackles += events_df[(events_df['team'] == team) & (events_df['type'] == 'Duel') & 
+                                (events_df['duel_type'] == "Tackle")].shape[0]
+    if 'goalkeeper_type' in events_df.columns:
+        num_tackles += events_df[(events_df['team'] == team) & (events_df['type'] == 'Goal Keeper') & 
+                                (events_df['goalkeeper_type'] == "Smother")].shape[0]
+    return num_tackles
+
+
+def _ratio_success_tackles(events_df, team):
+    '''
+    Calculate the ratio of successful tackles for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        float: The ratio of successful tackles.
+    '''
+    total_tackles = _num_tackles(events_df, team)
+    successful_tackles = 0
+    if 'duel_type' in events_df.columns and 'duel_outcome' in events_df.columns:
+        successful_tackles += events_df[(events_df['team'] == team) & (events_df['type'] == 'Duel') &
+                                        (events_df['duel_type'] == "Tackle") &
+                                        (events_df['duel_outcome'].isin(["Won","Success","Success In Play","Success Out"]))].shape[0]
+    if 'goalkeeper_type' in events_df.columns and 'goalkeeper_outcome' in events_df.columns:
+        successful_tackles += events_df[(events_df['team'] == team) & (events_df['type'] == 'Goal Keeper') & 
+                                (events_df['goalkeeper_type'] == "Smother") &
+                                (events_df['goalkeeper_outcome'].isin(["Won","Success","Success In Play","Success Out"]))].shape[0]
+    return successful_tackles / total_tackles if total_tackles > 0 else 0.0
+
+
+def _num_50_50_won(events_df, team):
+    '''
+    Calculate the number of 50/50 won for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of 50/50 won.
+    '''
+    num_50_50_won = 0
+    if '50_50' in events_df.columns:
+        num_50_50_won = events_df[(events_df['team'] == team) & (events_df['type'] == '50/50') & 
+                                  (events_df['50_50'].apply(
+                                      lambda x: isinstance(x, dict) and x.get('outcome') and x['outcome'].get('name') in ["Won", "Success To Team"]
+                                    ))].shape[0]
+    return num_50_50_won
+
+
+def _num_penaltys_committed(events_df, team):
+    '''
+    Calculate the number of penaltys committed for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of penaltys committed.
+    '''
+    _num_penaltys_committed = 0
+    if 'foul_committed_penalty' in events_df.columns:
+        _num_penaltys_committed = events_df[(events_df['team'] == team) & (events_df['type'] == 'Foul Committed') & 
+                                           (events_df['foul_committed_penalty'] == True)].shape[0]
+    return _num_penaltys_committed
+
+
+def _num_cards_color_selected(events_df, team, card_color):
+    '''
+    Calculate the number of selected color cards for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+        card_color (str): The color of the card.
+    returns:
+        int: The number of selected color cards.
+    '''
+    num_cards_color = 0
+    if 'foul_committed_card' in events_df.columns:
+        if card_color == "Yellow":
+            num_cards_color += events_df[(events_df['team'] == team) & (events_df['type'] == 'Foul Committed') & 
+                                        (events_df['foul_committed_card'].isin(["Yellow Card","Second Yellow"]))].shape[0]
+        elif card_color == "Red":
+            num_cards_color += events_df[(events_df['team'] == team) & (events_df['type'] == 'Foul Committed') & 
+                                        (events_df['foul_committed_card'] == "Red Card")].shape[0]
+    if 'bad_behaviour_card' in events_df.columns:
+        if card_color == "Yellow":
+            num_cards_color += events_df[(events_df['team'] == team) & (events_df['type'] == 'Bad Behaviour') & 
+                                        (events_df['bad_behaviour_card'].isin(["Yellow Card","Second Yellow"]))].shape[0]
+        elif card_color == "Red":
+            num_cards_color += events_df[(events_df['team'] == team) & (events_df['type'] == 'Bad Behaviour') & 
+                                        (events_df['bad_behaviour_card'] == "Red Card")].shape[0]
+    return num_cards_color
 
