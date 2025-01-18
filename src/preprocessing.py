@@ -41,6 +41,9 @@ def _process_match(events_df, home_team, away_team, winning_team):
     returns:
         dict: A dictionary containing the processed match.    
     '''
+    possession_percentage = _possession_percentage(events_df, home_team, away_team)
+    possession_percentage_home = possession_percentage[0]
+    possession_percentage_away = possession_percentage[1]
     metrics = {
         # estadísticas generales del partido
         ## tiros
@@ -116,6 +119,20 @@ def _process_match(events_df, home_team, away_team, winning_team):
         ## otros
         "offsides_home": _num_offsides(events_df, home_team),
         "offsides_away": _num_offsides(events_df, away_team),
+        "dribbles_home": _num_event_type(events_df, home_team, 'Dribble'),
+        "dribbles_away": _num_event_type(events_df, away_team, 'Dribble'),
+        "dribbles_success_ratio_home": _ratio_success_dribbles(events_df, home_team),
+        "dribbles_success_ratio_away": _ratio_success_dribbles(events_df, away_team),
+        "injury_substitutions_home": _num_substitutions_because_of_injury(events_df, home_team),
+        "injury_substitutions_away": _num_substitutions_because_of_injury(events_df, away_team),
+        "players_off_home": _num_players_off(events_df, home_team),
+        "players_off_away": _num_players_off(events_df, away_team),
+        "dispossessed_home": _num_event_type(events_df, home_team, 'Dispossessed'),
+        "dispossessed_away": _num_event_type(events_df, away_team, 'Dispossessed'),
+        "counterattacks_home": _num_counterattacks(events_df, home_team),
+        "counterattacks_away": _num_counterattacks(events_df, away_team),
+        "possession_percentage_home": possession_percentage_home,
+        "possession_percentage_away": possession_percentage_away,
         # equipo ganador
         "winning_team": winning_team,
     }
@@ -484,7 +501,8 @@ def _num_penaltys_committed(events_df, team):
 
 def _num_cards_color_selected(events_df, team, card_color):
     '''
-    Calculate the number of selected color cards for a specific team.
+    Calculate the number of selected color cards for a specific team. Since the second yellow card 
+    implies a red card, we will count it as a red card.
     params:
         events_df (DataFrame): A DataFrame containing the events.
         team (str): The team.
@@ -496,17 +514,17 @@ def _num_cards_color_selected(events_df, team, card_color):
     if 'foul_committed_card' in events_df.columns:
         if card_color == "Yellow":
             num_cards_color += events_df[(events_df['team'] == team) & (events_df['type'] == 'Foul Committed') & 
-                                        (events_df['foul_committed_card'].isin(["Yellow Card","Second Yellow"]))].shape[0]
+                                        (events_df['foul_committed_card'] == "Yellow Card")].shape[0]
         elif card_color == "Red":
             num_cards_color += events_df[(events_df['team'] == team) & (events_df['type'] == 'Foul Committed') & 
-                                        (events_df['foul_committed_card'] == "Red Card")].shape[0]
+                                        (events_df['foul_committed_card'].isin(["Red Card","Second Yellow"]))].shape[0]
     if 'bad_behaviour_card' in events_df.columns:
         if card_color == "Yellow":
             num_cards_color += events_df[(events_df['team'] == team) & (events_df['type'] == 'Bad Behaviour') & 
-                                        (events_df['bad_behaviour_card'].isin(["Yellow Card","Second Yellow"]))].shape[0]
+                                        (events_df['bad_behaviour_card'] == "Yellow Card")].shape[0]
         elif card_color == "Red":
             num_cards_color += events_df[(events_df['team'] == team) & (events_df['type'] == 'Bad Behaviour') & 
-                                        (events_df['bad_behaviour_card'] == "Red Card")].shape[0]
+                                        (events_df['bad_behaviour_card'].isin(["Red Card","Second Yellow"]))].shape[0]
     return num_cards_color
 
 
@@ -554,4 +572,110 @@ def _num_offsides(events_df, team):
     pass_offsides = events_df[(events_df['team'] == team) & (events_df['type'] == 'Pass') &
                               (events_df['pass_outcome'] == "Pass Offside")].shape[0]
     return non_pass_offsides + pass_offsides
+
+
+def _ratio_success_dribbles(events_df, team):
+    '''
+    Calculate the ratio of successful dribbles for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        float: The ratio of successful dribbles.
+    '''
+    total_dribbles = _num_event_type(events_df, team, 'Dribble')
+    successful_dribbles = 0
+    if 'dribble_outcome' in events_df.columns:
+        successful_dribbles = events_df[(events_df['team'] == team) & (events_df['type'] == 'Dribble') & 
+                                        (events_df['dribble_outcome'] == "Complete")].shape[0]
+    return successful_dribbles / total_dribbles if total_dribbles > 0 else 0.0
+
+
+def _num_substitutions_because_of_injury(events_df, team):
+    '''
+    Calculate the number of substitutions because of injury for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of substitutions because of injuries.
+    '''
+    num_substitutions_because_of_injuries = 0
+    if 'substitution_outcome' in events_df.columns:
+        num_substitutions_because_of_injuries = events_df[(events_df['team'] == team) & (events_df['type'] == 'Substitution') & 
+                                                          (events_df['substitution_outcome'] == "Injury")].shape[0]
+    return num_substitutions_because_of_injuries
+
+
+def _num_players_off(events_df, team):
+    '''
+    Calculate the number of players off (injured players who have to leave the field 
+    without making a substitution because there is no one left) for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of players off.
+    '''
+    num_players_off = 0
+    if 'permanent' in events_df.columns:
+        num_players_off = events_df[(events_df['team'] == team) & (events_df['type'] == 'Player Off') & 
+                                    (events_df['permanent'] == True)].shape[0]
+    return num_players_off
+
+
+def _num_counterattacks(events_df, team):
+    '''
+    Calculate the number of counterattacks for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of counterattacks.
+    '''
+    return events_df[(events_df['team'] == team) & 
+                     (events_df['play_pattern'] == "From Counter")]['possession'].nunique()
+
+
+def _possession_percentage(events_df, home_team, away_team):
+    '''
+    Calculate the possession percentage for a specific team. Ball possession refers to 
+    the amount of time a team has control of the ball during a match.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        home_team (str): Home team.
+        away_team (str): Away team.
+    returns:
+        float: The possession percentage.
+    '''
+    possessions_percentage = _calculate_possession_percentage(events_df.copy())
+    home_team_possession_percentage = possessions_percentage.get(home_team, 0.0)
+    away_team_possession_percentage = possessions_percentage.get(away_team, 0.0)
+    return home_team_possession_percentage, away_team_possession_percentage
+
+
+def _calculate_possession_percentage(events_df):
+    """
+    Calculate the possession percentage for each team in a specific team.
+    params:
+        events_df (DataFrame): DataFrame con los eventos del partido.
+    returns:
+        dict: Porcentajes de posesión para cada equipo.
+    """
+    events_df = events_df.sort_values(by='timestamp')
+    # identificamos al equipo de cada posesión
+    possession_durations = events_df.groupby('possession').apply(
+        lambda x: {
+            'team': x['possession_team'].iloc[0],
+            'duration': (pd.to_datetime(x['timestamp'].iloc[-1]) - pd.to_datetime(x['timestamp'].iloc[0])).total_seconds()
+        }
+    )
+    # creamos un dataframe con la duración de cada posesión
+    possession_df = pd.DataFrame(list(possession_durations), columns=['team', 'duration'])
+    # sumamos el tiempo de posesión de cada equipo
+    possession_time_by_team = possession_df.groupby('team')['duration'].sum()
+    total_time = possession_time_by_team.sum()
+    # calculamos el porcentaje de posesión para cada equipo
+    possession_percentage = (possession_time_by_team / total_time)
+    return possession_percentage.to_dict()
 
