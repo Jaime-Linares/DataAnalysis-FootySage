@@ -41,9 +41,11 @@ def _process_match(events_df, home_team, away_team, winning_team):
     returns:
         dict: A dictionary containing the processed match.    
     '''
+    # cálculo de la posesión en el partido
     possession_percentage = _possession_percentage(events_df.copy(), home_team, away_team)
     possession_percentage_home = possession_percentage[0]
     possession_percentage_away = possession_percentage[1]
+    # recolección de todas las métricas del partido
     metrics = {
         # estadísticas generales del partido
         ## tiros
@@ -133,6 +135,30 @@ def _process_match(events_df, home_team, away_team, winning_team):
         "counterattacks_away": _num_counterattacks(events_df, away_team),
         "possession_percentage_home": possession_percentage_home,
         "possession_percentage_away": possession_percentage_away,
+        # estadísticas contextuales del partido
+        ## recuperaciones
+        "recoveries_attacking_third_home": _num_recoveries_in_part_third(events_df, home_team, "Attacking"),
+        "recoveries_attacking_third_away": _num_recoveries_in_part_third(events_df, away_team, "Attacking"),
+        "recoveries_middle_third_home": _num_recoveries_in_part_third(events_df, home_team, "Middle"),
+        "recoveries_middle_third_away": _num_recoveries_in_part_third(events_df, away_team, "Middle"),
+        "recoveries_defensive_third_home": _num_recoveries_in_part_third(events_df, home_team, "Defensive"),
+        "recoveries_defensive_third_away": _num_recoveries_in_part_third(events_df, away_team, "Defensive"),
+        ## eventos bajo presión
+        "shots_under_pressure_home": _num_event_type_under_pressure(events_df, home_team, 'Shot', in_area=False),
+        "shots_under_pressure_away": _num_event_type_under_pressure(events_df, away_team, 'Shot', in_area=False),
+        "shots_inside_area_under_pressure_home": _num_event_type_under_pressure(events_df, home_team, 'Shot', in_area=True),
+        "shots_inside_area_under_pressure_away": _num_event_type_under_pressure(events_df, away_team, 'Shot', in_area=True),
+        "passes_under_pressure_home": _num_event_type_under_pressure(events_df, home_team, 'Pass', in_area=False),
+        "passes_under_pressure_away": _num_event_type_under_pressure(events_df, away_team, 'Pass', in_area=False),
+        "passes_inside_area_under_pressure_home": _num_event_type_under_pressure(events_df, home_team, 'Pass', in_area=True),
+        "passes_inside_area_under_pressure_away": _num_event_type_under_pressure(events_df, away_team, 'Pass', in_area=True),
+        ## jugadas a balón parado
+        "set_piece_shots_home": _set_piece_shots(events_df, home_team, in_area=False),
+        "set_piece_shots_away": _set_piece_shots(events_df, away_team, in_area=False),
+        "set_piece_shots_inside_area_home": _set_piece_shots(events_df, home_team, in_area=True),
+        "set_piece_shots_inside_area_away": _set_piece_shots(events_df, away_team, in_area=True),
+        "set_piece_shots_on_target_ratio_home": _ratio_set_piece_shots_on_target(events_df, home_team),
+        "set_piece_shots_on_target_ratio_away": _ratio_set_piece_shots_on_target(events_df, away_team),
         # equipo ganador
         "winning_team": winning_team,
     }
@@ -146,7 +172,7 @@ def _num_event_type(events_df, team, event_type):
         events_df (DataFrame): A DataFrame containing the events.
         team (str): The team.
     returns:
-        int: The number of shots.
+        int: The number of the event type.
     '''
     return events_df[(events_df['team'] == team) & (events_df['type'] == event_type)].shape[0]
 
@@ -685,4 +711,107 @@ def _possession_percentage(events_df, home_team, away_team):
     home_possession = (possession_time_by_team.get(home_team, 0.0) / total_time)
     away_possession = (possession_time_by_team.get(away_team, 0.0) / total_time)
     return home_possession, away_possession
+
+
+def _num_recoveries_in_part_third(events_df, team, part):
+    '''
+    Calculate the number of recoveries in the part third especified for a specific team.
+    Attacking third is defined as the area from 80 to 120 in x-axis and from 0 to 80 in y-axis.
+    Middle third is defined as the area from 40 to 80 in x-axis and from 0 to 80 in y-axis.
+    Defensive third is defined as the area from 0 to 40 in x-axis and from 0 to 80 in y-axis.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+        part (str): The part of the field.
+    returns:
+        int: The number of recoveries in the attacking third.
+    '''
+    num_recoveries_in_attacking_third = 0
+    num_interceptions_in_attacking_third = 0
+    # dependiendo de la parte del campo que queramos calcular
+    if part == "Attacking":
+        x_min, x_max = 80, 120
+    elif part == "Middle":
+        x_min, x_max = 40, 80
+    elif part == "Defensive":
+        x_min, x_max = 0, 40
+    # calculamos las recuperaciones en la parte del campo seleccionada
+    if 'ball_recovery_offensive' in events_df.columns:
+        num_recoveries_in_attacking_third = events_df[(events_df['team'] == team) & (events_df['type'] == 'Ball Recovery') & 
+                                                      (events_df['ball_recovery_offensive'] == True) &
+                                                      (events_df['location'].notnull()) &
+                                                      (events_df['location'].apply(
+                                                          lambda loc: isinstance(loc, list) and x_min <= loc[0] <= x_max and 0 <= loc[1] <= 80
+                                                        ))].shape[0]
+    if 'interception_outcome' in events_df.columns:
+        num_interceptions_in_attacking_third = events_df[(events_df['team'] == team) & (events_df['type'] == 'Interception') & 
+                                                         (events_df['interception_outcome'].isin(["Success","Success In Play","Success Out","Won"])) &
+                                                         (events_df['location'].notnull()) &
+                                                         (events_df['location'].apply(
+                                                             lambda loc: isinstance(loc, list) and x_min <= loc[0] <= x_max and 0 <= loc[1] <= 80
+                                                            ))].shape[0]
+    return num_recoveries_in_attacking_third + num_interceptions_in_attacking_third
+
+
+def _num_event_type_under_pressure(events_df, team, event_type, in_area):
+    '''
+    Calculate the number of event type selected that are under pressure for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+        event_type (str): The event type.
+        in_area (bool): If the event is in the area.
+    returns:
+        int: The number of the event type that are under pressure.
+    '''
+    if in_area == True:
+        return events_df[(events_df['team'] == team) & (events_df['type'] == event_type) & 
+                         (events_df['under_pressure'] == True) &
+                         (events_df['location'].notnull()) &
+                         (events_df['location'].apply(
+                             lambda loc: isinstance(loc, list) and 102 <= loc[0] <= 120 and 18 <= loc[1] <= 62
+                            ))].shape[0]
+    else:
+        return events_df[(events_df['team'] == team) & (events_df['type'] == event_type) &
+                     (events_df['under_pressure'] == True)].shape[0]
+
+
+def _set_piece_shots(events_df, team, in_area):
+    '''
+    Calculate the number of shots from set pieces for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+        in_area (bool): If the shot is in the area.
+    returns:
+        int: The number of shots from set pieces.
+    '''
+    if in_area == True:
+        return events_df[(events_df['team'] == team) & (events_df['type'] == 'Shot') & 
+                         (events_df['play_pattern'].isin(["From Corner","From Free Kick","From Throw In","From Goal Kick","From Keeper","From Kick Off"])) &
+                         (events_df['location'].notnull()) &
+                         (events_df['location'].apply(
+                             lambda loc: isinstance(loc, list) and 102 <= loc[0] <= 120 and 18 <= loc[1] <= 62
+                            ))].shape[0]
+    else:
+        return events_df[(events_df['team'] == team) & (events_df['type'] == 'Shot') &
+                         (events_df['play_pattern'].isin(["From Corner","From Free Kick","From Throw In","From Goal Kick","From Keeper","From Kick Off"]))
+                         ].shape[0]
+
+
+def _ratio_set_piece_shots_on_target(events_df, team):
+    '''
+    Calculate the ratio of shots on target from set pieces for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        float: The ratio of shots on target from set pieces.
+    '''
+    set_piece_shots = _set_piece_shots(events_df, team, in_area=False)
+    shots_on_target_df = _shots_on_target_df(events_df, team)
+    set_piece_shots_on_target = shots_on_target_df[
+        (shots_on_target_df['play_pattern'].isin(["From Corner","From Free Kick","From Throw In","From Goal Kick","From Keeper","From Kick Off"]))
+        ].shape[0]
+    return set_piece_shots_on_target / set_piece_shots if set_piece_shots > 0 else 0.0
 
