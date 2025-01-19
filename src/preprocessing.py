@@ -304,10 +304,12 @@ def _num_shots_with_body_part(events_df, team, body_part):
         num_shots = events_df[(events_df['team'] == team) & (events_df['type'] == 'Shot') & 
                               (events_df['shot_body_part'].notnull()) &
                               (events_df['shot_body_part'].isin(["Right Foot","Left Foot"]))].shape[0]
-    else:
+    elif body_part == "Head" or body_part == "Other":
         num_shots = events_df[(events_df['team'] == team) & (events_df['type'] == 'Shot') & 
                               (events_df['shot_body_part'].notnull()) &
                               (events_df['shot_body_part'] == body_part)].shape[0]
+    else:
+        raise ValueError("The body part must be 'Foot', 'Head' or 'Other'.")
     return num_shots
 
 
@@ -544,6 +546,8 @@ def _num_cards_color_selected(events_df, team, card_color):
         elif card_color == "Red":
             num_cards_color += events_df[(events_df['team'] == team) & (events_df['type'] == 'Foul Committed') & 
                                         (events_df['foul_committed_card'].isin(["Red Card","Second Yellow"]))].shape[0]
+        else:
+            raise ValueError("The card color must be 'Yellow' or 'Red'.")
     if 'bad_behaviour_card' in events_df.columns:
         if card_color == "Yellow":
             num_cards_color += events_df[(events_df['team'] == team) & (events_df['type'] == 'Bad Behaviour') & 
@@ -551,6 +555,8 @@ def _num_cards_color_selected(events_df, team, card_color):
         elif card_color == "Red":
             num_cards_color += events_df[(events_df['team'] == team) & (events_df['type'] == 'Bad Behaviour') & 
                                         (events_df['bad_behaviour_card'].isin(["Red Card","Second Yellow"]))].shape[0]
+        else:
+            raise ValueError("The card color must be 'Yellow' or 'Red'.")
     return num_cards_color
 
 
@@ -715,7 +721,7 @@ def _possession_percentage(events_df, home_team, away_team):
 
 def _num_recoveries_in_part_third(events_df, team, part):
     '''
-    Calculate the number of recoveries in the part third especified for a specific team.
+    Calculate the number of recoveries in the part especified for a specific team.
     Attacking third is defined as the area from 80 to 120 in x-axis and from 0 to 80 in y-axis.
     Middle third is defined as the area from 40 to 80 in x-axis and from 0 to 80 in y-axis.
     Defensive third is defined as the area from 0 to 40 in x-axis and from 0 to 80 in y-axis.
@@ -724,10 +730,10 @@ def _num_recoveries_in_part_third(events_df, team, part):
         team (str): The team.
         part (str): The part of the field.
     returns:
-        int: The number of recoveries in the attacking third.
+        int: The number of recoveries in the part especified.
     '''
-    num_recoveries_in_attacking_third = 0
-    num_interceptions_in_attacking_third = 0
+    num_recoveries_in_part_selected = 0
+    num_interceptions_in_part_selected = 0
     # dependiendo de la parte del campo que queramos calcular
     if part == "Attacking":
         x_min, x_max = 80, 120
@@ -735,22 +741,24 @@ def _num_recoveries_in_part_third(events_df, team, part):
         x_min, x_max = 40, 80
     elif part == "Defensive":
         x_min, x_max = 0, 40
+    else:
+        raise ValueError("You must choose between Attacking, Middle or Defensive")
     # calculamos las recuperaciones en la parte del campo seleccionada
     if 'ball_recovery_offensive' in events_df.columns:
-        num_recoveries_in_attacking_third = events_df[(events_df['team'] == team) & (events_df['type'] == 'Ball Recovery') & 
+        num_recoveries_in_part_selected = events_df[(events_df['team'] == team) & (events_df['type'] == 'Ball Recovery') & 
                                                       (events_df['ball_recovery_offensive'] == True) &
                                                       (events_df['location'].notnull()) &
                                                       (events_df['location'].apply(
                                                           lambda loc: isinstance(loc, list) and x_min <= loc[0] <= x_max and 0 <= loc[1] <= 80
                                                         ))].shape[0]
     if 'interception_outcome' in events_df.columns:
-        num_interceptions_in_attacking_third = events_df[(events_df['team'] == team) & (events_df['type'] == 'Interception') & 
+        num_interceptions_in_part_selected = events_df[(events_df['team'] == team) & (events_df['type'] == 'Interception') & 
                                                          (events_df['interception_outcome'].isin(["Success","Success In Play","Success Out","Won"])) &
                                                          (events_df['location'].notnull()) &
                                                          (events_df['location'].apply(
                                                              lambda loc: isinstance(loc, list) and x_min <= loc[0] <= x_max and 0 <= loc[1] <= 80
                                                             ))].shape[0]
-    return num_recoveries_in_attacking_third + num_interceptions_in_attacking_third
+    return num_recoveries_in_part_selected + num_interceptions_in_part_selected
 
 
 def _num_event_type_under_pressure(events_df, team, event_type, in_area):
@@ -764,6 +772,8 @@ def _num_event_type_under_pressure(events_df, team, event_type, in_area):
     returns:
         int: The number of the event type that are under pressure.
     '''
+    if event_type not in ['Pass', 'Shot']:
+        raise ValueError("The event type must be 'Pass' or 'Shot'.")
     if in_area == True:
         return events_df[(events_df['team'] == team) & (events_df['type'] == event_type) & 
                          (events_df['under_pressure'] == True) &
