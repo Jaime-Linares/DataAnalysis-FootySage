@@ -41,7 +41,7 @@ def _process_match(events_df, home_team, away_team, winning_team):
     returns:
         dict: A dictionary containing the processed match.    
     '''
-    possession_percentage = _possession_percentage(events_df, home_team, away_team)
+    possession_percentage = _possession_percentage(events_df.copy(), home_team, away_team)
     possession_percentage_home = possession_percentage[0]
     possession_percentage_away = possession_percentage[1]
     metrics = {
@@ -648,34 +648,41 @@ def _possession_percentage(events_df, home_team, away_team):
     returns:
         float: The possession percentage.
     '''
-    possessions_percentage = _calculate_possession_percentage(events_df.copy())
-    home_team_possession_percentage = possessions_percentage.get(home_team, 0.0)
-    away_team_possession_percentage = possessions_percentage.get(away_team, 0.0)
-    return home_team_possession_percentage, away_team_possession_percentage
+    possession_time_by_team = {home_team: 0.0, away_team: 0.0}
+    total_time = 0.0
+    events_df['timestamp'] = pd.to_datetime(events_df['timestamp'], format='%H:%M:%S.%f')
+    events_df = events_df.sort_values(by=['index'])
 
+    # iteramos por cada período para que no haya problemas a la hora de calcular la posesión en los descuentos
+    for period in events_df['period'].unique():
+        period_events = events_df[events_df['period'] == period].copy()
+        period_events['next_timestamp'] = period_events['timestamp'].shift(-1)
+        period_events['next_possession'] = period_events['possession'].shift(-1)
 
-def _calculate_possession_percentage(events_df):
-    """
-    Calculate the possession percentage for each team in a specific team.
-    params:
-        events_df (DataFrame): DataFrame con los eventos del partido.
-    returns:
-        dict: Porcentajes de posesión para cada equipo.
-    """
-    events_df = events_df.sort_values(by='timestamp')
-    # identificamos al equipo de cada posesión
-    possession_durations = events_df.groupby('possession').apply(
-        lambda x: {
-            'team': x['possession_team'].iloc[0],
-            'duration': (pd.to_datetime(x['timestamp'].iloc[-1]) - pd.to_datetime(x['timestamp'].iloc[0])).total_seconds()
-        }
-    )
-    # creamos un dataframe con la duración de cada posesión
-    possession_df = pd.DataFrame(list(possession_durations), columns=['team', 'duration'])
-    # sumamos el tiempo de posesión de cada equipo
-    possession_time_by_team = possession_df.groupby('team')['duration'].sum()
-    total_time = possession_time_by_team.sum()
-    # calculamos el porcentaje de posesión para cada equipo
-    possession_percentage = (possession_time_by_team / total_time)
-    return possession_percentage.to_dict()
+        # calculamos la duración de cada posesión considerando el inicio de la siguiente posesión
+        possession_durations = []
+        for _, possession_group in period_events.groupby('possession'):
+            team = possession_group['possession_team'].iloc[0]
+            start_time = possession_group['timestamp'].iloc[0]
+            if pd.notna(possession_group['next_possession'].iloc[-1]) and possession_group['next_possession'].iloc[-1] != possession_group['possession'].iloc[0]:
+                end_time = possession_group['next_timestamp'].iloc[-1]
+            else:       # si es la última posesión del período el tiempo es el último de esa posesión
+                end_time = possession_group['timestamp'].iloc[-1]
+            duration = (end_time - start_time).total_seconds()
+            possession_durations.append({'team': team, 'duration': duration})
+
+        # creamos un DataFrame con las duraciones
+        possession_df = pd.DataFrame(possession_durations)
+        # sumamos los tiempos por equipo para el período
+        period_possession_time = possession_df.groupby('team')['duration'].sum()
+        period_total_time = period_possession_time.sum()
+        # acumulamos tiempos por equipo y tiempo total
+        for team, time in period_possession_time.items():
+            possession_time_by_team[team] = possession_time_by_team.get(team, 0.0) + time
+        total_time += period_total_time
+
+    # calculamos porcentajes de posesión
+    home_possession = (possession_time_by_team.get(home_team, 0.0) / total_time)
+    away_possession = (possession_time_by_team.get(away_team, 0.0) / total_time)
+    return home_possession, away_possession
 
