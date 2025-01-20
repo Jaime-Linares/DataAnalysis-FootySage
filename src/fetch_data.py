@@ -19,6 +19,8 @@ def get_competition_id_and_season_id(competition_name, competition_gender, seaso
     competition = competitions[(competitions['competition_name'] == competition_name) & 
                                   (competitions['competition_gender'] == competition_gender) & 
                                   (competitions['season_name'] == season_name)]
+    if competition.shape[0] == 0:
+        raise ValueError('No such competition found. Please check the competition, season and gender name.')
     competition_id = competition['competition_id'].values[0]
     season_id = competition['season_id'].values[0]
     return (competition_id, season_id)
@@ -34,6 +36,8 @@ def get_matches(competition_id, season_id):
         DataFrame: A DataFrame containing the matches.
     '''
     matches = sb.matches(competition_id=competition_id, season_id=season_id)
+    if matches.shape[0] == 0:
+        raise ValueError('No such matches found. Please check the competition_id and season_id.')
     return matches
 
 
@@ -46,5 +50,7 @@ def get_events(match_id):
         DataFrame: A DataFrame containing the events.
     '''
     events = sb.events(match_id=match_id)
+    if events.shape[0] == 0:
+        raise ValueError('No such events found. Please check the match_id.')
     return events
 
