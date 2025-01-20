@@ -14,6 +14,9 @@ def process_all_matches(matches_df):
         DataFrame: A DataFrame containing the processed matches.
     '''
     all_matches_metrics = []
+    # ordenamos los partidos por semana de competición y hora de inicio para que un futuro cuando tengamos que buscar datos
+    # de partidos anteriores podamos ver a partir de que momento consultarlo
+    matches_df = matches_df.sort_values(by=["match_week","kick_off"])
     
     for _, match in matches_df.iterrows():
         # obtenemos toda la información relativa al partido
