@@ -25,17 +25,17 @@ def process_all_matches(matches_df):
         home_team = match['home_team']
         away_team = match['away_team']
         match_week = match['match_week']
-        winning_team ='home_team' if match['home_score'] > match['away_score'] else 'draw' if match['away_score'] == match['home_score'] else 'away_team'
+        winner_team ='home_team' if match['home_score'] > match['away_score'] else 'draw' if match['away_score'] == match['home_score'] else 'away_team'
         match_events = get_events(match_id)
         match_events_sorted_by_index_df = match_events.sort_values(by=["index","type"])
         # convertimos toda la información del partido en métricas
-        match_metrics = _process_match(matches_df, match_events_sorted_by_index_df, home_team, away_team, match_week, winning_team)
+        match_metrics = _process_match(matches_df, match_events_sorted_by_index_df, home_team, away_team, match_week, winner_team)
         all_matches_metrics.append(match_metrics)
     
     return pd.DataFrame(all_matches_metrics)
 
 
-def _process_match(matches_df, events_df, home_team, away_team, match_week, winning_team):
+def _process_match(matches_df, events_df, home_team, away_team, match_week, winner_team):
     '''
     Process (obtain all relevant data) a match.
     params:
@@ -44,7 +44,7 @@ def _process_match(matches_df, events_df, home_team, away_team, match_week, winn
         home_team (str): The home team name.
         away_team (str): The away team name.
         match_week (int): The week of the competition of the match processed.
-        winning_team (str): The winning team (home_team, away_team, draw).
+        winner_team (str): The winner team (home_team, away_team, draw).
     returns:
         dict: A dictionary containing the processed match.    
     '''
@@ -52,7 +52,6 @@ def _process_match(matches_df, events_df, home_team, away_team, match_week, winn
     summary_last_x_mactches = 3
     win_percentage_last_x_matches = 5
     std_shots_last_x_matches = 3
-    std_pass_accuracy_last_x_matches = 3
 
     # algunas métricas cuya función que las calcula se llaman una sola vez
     ## cálculo de la posesión en el partido
@@ -228,7 +227,7 @@ def _process_match(matches_df, events_df, home_team, away_team, match_week, winn
         f"std_shots_last_{std_shots_last_x_matches}_matches_away": tuple_std_shots_last_n_matches_away[0],
         f"is_valid_std_shots_last_{std_shots_last_x_matches}_matches_away": tuple_std_shots_last_n_matches_away[1],
         # equipo ganador
-        "winning_team": winning_team,
+        "winner_team": winner_team,
     }
     return metrics
 
