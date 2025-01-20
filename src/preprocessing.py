@@ -159,6 +159,19 @@ def _process_match(events_df, home_team, away_team, winning_team):
         "set_piece_shots_inside_area_away": _set_piece_shots(events_df, away_team, in_area=True),
         "set_piece_shots_on_target_ratio_home": _ratio_set_piece_shots_on_target(events_df, home_team),
         "set_piece_shots_on_target_ratio_away": _ratio_set_piece_shots_on_target(events_df, away_team),
+        # tácticas del partido
+        "substitutions_home": _num_event_type(events_df, home_team, 'Substitution'),
+        "substitutions_away": _num_event_type(events_df, away_team, 'Substitution'),
+        "tactical_substitutions_home": _num_tactical_substitutions(events_df, home_team),
+        "tactical_substitutions_away": _num_tactical_substitutions(events_df, away_team),
+        "tactical_changes_home": _num_event_type(events_df, home_team, 'Tactical Shift'),
+        "tactical_changes_away": _num_event_type(events_df, away_team, 'Tactical Shift'),
+        "formation_changes_home": _num_changes_in_formation(events_df, home_team),
+        "formation_changes_away": _num_changes_in_formation(events_df, away_team),
+        # métricas temporales
+        ## rendimiento pasado
+        ## último partido
+        ## consistencia
         # equipo ganador
         "winning_team": winning_team,
     }
@@ -824,4 +837,37 @@ def _ratio_set_piece_shots_on_target(events_df, team):
         (shots_on_target_df['play_pattern'].isin(["From Corner","From Free Kick","From Throw In","From Goal Kick","From Keeper","From Kick Off"]))
         ].shape[0]
     return set_piece_shots_on_target / set_piece_shots if set_piece_shots > 0 else 0.0
+
+
+def _num_tactical_substitutions(events_df, team):
+    '''
+    Calculate the number of tactical substitutions for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of tactical substitutions.
+    '''
+    num_tactical_substitutions = 0
+    if 'substitution_outcome' in events_df.columns:
+        num_tactical_substitutions = events_df[(events_df['team'] == team) & (events_df['type'] == 'Substitution') & 
+                                               (events_df['substitution_outcome'] == "Tactical")].shape[0]
+    return num_tactical_substitutions
+
+
+def _num_changes_in_formation(events_df, team):
+    '''
+    Calculate the number of changes in formation for a specific team.
+    params:
+        events_df (DataFrame): A DataFrame containing the events.
+        team (str): The team.
+    returns:
+        int: The number of changes in formation.
+    '''
+    tactics_df = events_df[(events_df['team'] == team) & (events_df['tactics'].notnull())].copy()
+    tactics_df['formation'] = tactics_df['tactics'].apply(
+        lambda x: x['formation'] if isinstance(x, dict) and 'formation' in x else None
+    )
+    changes_in_formation = tactics_df['formation'].ne(tactics_df['formation'].shift()).sum() - 1    # restamos 1 porque la primera formación no cuenta
+    return changes_in_formation
 
