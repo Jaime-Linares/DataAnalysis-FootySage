@@ -5,6 +5,7 @@ import numpy as np
 
 
 
+# --- FUNCIONES PRINCIPALES ---------------------------------------------------------------------------------------------------------------------------------------
 def process_all_matches(matches_df):
     '''
     Process (obtain all relevant data) all matches in the DataFrame.
@@ -23,31 +24,58 @@ def process_all_matches(matches_df):
         match_id = match['match_id']
         home_team = match['home_team']
         away_team = match['away_team']
+        match_week = match['match_week']
         winning_team ='home_team' if match['home_score'] > match['away_score'] else 'draw' if match['away_score'] == match['home_score'] else 'away_team'
         match_events = get_events(match_id)
         match_events_sorted_by_index_df = match_events.sort_values(by=["index","type"])
         # convertimos toda la información del partido en métricas
-        match_metrics = _process_match(match_events_sorted_by_index_df, home_team, away_team, winning_team)
+        match_metrics = _process_match(matches_df, match_events_sorted_by_index_df, home_team, away_team, match_week, winning_team)
         all_matches_metrics.append(match_metrics)
     
     return pd.DataFrame(all_matches_metrics)
 
 
-def _process_match(events_df, home_team, away_team, winning_team):
+def _process_match(matches_df, events_df, home_team, away_team, match_week, winning_team):
     '''
     Process (obtain all relevant data) a match.
     params:
-        events_df (DataFrame): A DataFrame containing the events.
+        matches_df (DataFrame): A DataFrame containing the matches of the competition.
+        events_df (DataFrame): A DataFrame containing the events of the match processed.
         home_team (str): The home team name.
         away_team (str): The away team name.
+        match_week (int): The week of the competition of the match processed.
         winning_team (str): The winning team (home_team, away_team, draw).
     returns:
         dict: A dictionary containing the processed match.    
     '''
-    # cálculo de la posesión en el partido
-    possession_percentage = _possession_percentage(events_df.copy(), home_team, away_team)
-    possession_percentage_home = possession_percentage[0]
-    possession_percentage_away = possession_percentage[1]
+    # variables globales
+    summary_last_x_mactches = 3
+    win_percentage_last_x_matches = 5
+    std_shots_last_x_matches = 3
+    std_pass_accuracy_last_x_matches = 3
+
+    # algunas métricas cuya función que las calcula se llaman una sola vez
+    ## cálculo de la posesión en el partido
+    tuple_possession_percentage = _possession_percentage(events_df.copy(), home_team, away_team)
+    ## rendimiento pasado
+    tuple_last_n_matches_form_home = _last_n_matches_form(matches_df, home_team, match_week, n=summary_last_x_mactches)
+    tuple_last_n_matches_form_away = _last_n_matches_form(matches_df, away_team, match_week, n=summary_last_x_mactches)
+    tuple_win_rate_last_n_matches_home = _win_rate_last_n_matches(matches_df, home_team, match_week, n=win_percentage_last_x_matches)
+    tuple_win_rate_last_n_matches_away = _win_rate_last_n_matches(matches_df, away_team, match_week, n=win_percentage_last_x_matches)
+    ## victoria o no último partido como local o visitante del equipo local o visitante
+    local_team_local_win = _win_last_home_match_home_team(matches_df, home_team, match_week)
+    away_team_away_win = _win_last_away_match_away_team(matches_df, away_team, match_week)
+    ## goles encajados y anotados último partido
+    ### goles encajados
+    tuple_goals_conceded_last_match_home = _num_goals_conceded_last_match(matches_df, home_team, match_week)
+    tuple_goals_conceded_last_match_away = _num_goals_conceded_last_match(matches_df, away_team, match_week)
+    ### goles anotados
+    tuple_goals_scored_last_match_home = _num_goals_scored_last_match(matches_df, home_team, match_week)
+    tuple_goals_scored_last_match_away = _num_goals_scored_last_match(matches_df, away_team, match_week)
+    ## desviación estándar de tiros y pases en los últimos partidos
+    tuple_std_shots_last_n_matches_home = _std_shots_last_n_matches(matches_df, home_team, match_week, n=std_shots_last_x_matches)
+    tuple_std_shots_last_n_matches_away = _std_shots_last_n_matches(matches_df, away_team, match_week, n=std_shots_last_x_matches)
+
     # recolección de todas las métricas del partido
     metrics = {
         # estadísticas generales del partido
@@ -136,8 +164,8 @@ def _process_match(events_df, home_team, away_team, winning_team):
         "dispossessed_away": _num_event_type(events_df, away_team, 'Dispossessed'),
         "counterattacks_home": _num_counterattacks(events_df, home_team),
         "counterattacks_away": _num_counterattacks(events_df, away_team),
-        "possession_percentage_home": possession_percentage_home,
-        "possession_percentage_away": possession_percentage_away,
+        "possession_percentage_home": tuple_possession_percentage[0],
+        "possession_percentage_away": tuple_possession_percentage[1],
         # estadísticas contextuales del partido
         ## recuperaciones
         "recoveries_attacking_third_home": _num_recoveries_in_part_third(events_df, home_team, "Attacking"),
@@ -173,14 +201,39 @@ def _process_match(events_df, home_team, away_team, winning_team):
         "formation_changes_away": _num_changes_in_formation(events_df, away_team),
         # métricas temporales
         ## rendimiento pasado
+        f"last_{summary_last_x_mactches}_matches_form_home": tuple_last_n_matches_form_home[0],
+        f"is_valid_last_{summary_last_x_mactches}_matches_form_home": tuple_last_n_matches_form_home[1],
+        f"last_{summary_last_x_mactches}_matches_form_away": tuple_last_n_matches_form_away[0],
+        f"is_valid_last_{summary_last_x_mactches}_matches_form_away": tuple_last_n_matches_form_away[1],
+        f"win_rate_last_{win_percentage_last_x_matches}_matches_home": tuple_win_rate_last_n_matches_home[0],
+        f"is_valid_win_rate_last_{win_percentage_last_x_matches}_matches_home": tuple_win_rate_last_n_matches_home[1],
+        f"win_rate_last_{win_percentage_last_x_matches}_matches_away": tuple_win_rate_last_n_matches_away[0],
+        f"is_valid_win_rate_last_{win_percentage_last_x_matches}_matches_away": tuple_win_rate_last_n_matches_away[1],
+        "win_last_home_match_home_team": local_team_local_win[0],
+        "is_valid_win_last_home_match_home_team": local_team_local_win[1],
+        "win_last_away_match_away_team": away_team_away_win[0],
+        "is_valid_win_last_away_match_away_team": away_team_away_win[1],
         ## último partido
+        "goals_conceded_last_match_home": tuple_goals_conceded_last_match_home[0],
+        "is_valid_goals_conceded_last_match_home": tuple_goals_conceded_last_match_home[1],
+        "goals_conceded_last_match_away": tuple_goals_conceded_last_match_away[0],
+        "is_valid_goals_conceded_last_match_away": tuple_goals_conceded_last_match_away[1],
+        "goals_scored_last_match_home": tuple_goals_scored_last_match_home[0],
+        "is_valid_goals_scored_last_match_home": tuple_goals_scored_last_match_home[1],
+        "goals_scored_last_match_away": tuple_goals_scored_last_match_away[0],
+        "is_valid_goals_scored_last_match_away": tuple_goals_scored_last_match_away[1],
         ## consistencia
+        f"std_shots_last_{std_shots_last_x_matches}_matches_home": tuple_std_shots_last_n_matches_home[0],
+        f"is_valid_std_shots_last_{std_shots_last_x_matches}_matches_home": tuple_std_shots_last_n_matches_home[1],
+        f"std_shots_last_{std_shots_last_x_matches}_matches_away": tuple_std_shots_last_n_matches_away[0],
+        f"is_valid_std_shots_last_{std_shots_last_x_matches}_matches_away": tuple_std_shots_last_n_matches_away[1],
         # equipo ganador
         "winning_team": winning_team,
     }
     return metrics
 
 
+# --- FUNCIONES AUXILIARES ----------------------------------------------------------------------------------------------------------------------------------------
 def _num_event_type(events_df, team, event_type):
     '''
     Calculate the number of the event type selected for a specific team.
@@ -687,14 +740,14 @@ def _num_counterattacks(events_df, team):
 
 def _possession_percentage(events_df, home_team, away_team):
     '''
-    Calculate the possession percentage for a specific team. Ball possession refers to 
+   Calculate the possession percentage for both the home and away teams. Ball possession refers to 
     the amount of time a team has control of the ball during a match.
     params:
         events_df (DataFrame): A DataFrame containing the events.
         home_team (str): Home team.
         away_team (str): Away team.
     returns:
-        float: The possession percentage.
+        tuple: (float, float) Containing the possession percentage for the home team and the away team.
     '''
     possession_time_by_team = {home_team: 0.0, away_team: 0.0}
     total_time = 0.0
@@ -873,4 +926,175 @@ def _num_changes_in_formation(events_df, team):
     )
     changes_in_formation = tactics_df['formation'].ne(tactics_df['formation'].shift()).sum() - 1    # restamos 1 porque la primera formación no cuenta
     return changes_in_formation
+
+
+def _last_n_matches_form(matches_df, team, match_week, n):
+    '''
+    Calculate the form of the last n matches for a specific team.
+    3 points per win, 1 point per draw and 0 points per loss.
+    params:
+        matches_df (DataFrame): A DataFrame containing the matches.
+        team (str): The team.
+        match_week (int): The match week.
+        n (int): The number of matches to consider.
+    returns:
+        tuple: (int, int) The form of the last n matches and a 0/1 indicating if the value is valid.
+    '''
+    last_n_matches_form = 0
+    is_valid_last_n_matches_form = 0
+    if match_week > n and n > 0:
+        last_n_matches = matches_df[((matches_df['home_team'] == team) | (matches_df['away_team'] == team)) & 
+                                    (matches_df['match_week'] < match_week)].tail(n)
+        for _, match in last_n_matches.iterrows():
+            if match['home_team'] == team:
+                if match['home_score'] > match['away_score']:
+                    last_n_matches_form += 3
+                elif match['home_score'] == match['away_score']:
+                    last_n_matches_form += 1
+            elif match['away_team'] == team:
+                if match['away_score'] > match['home_score']:
+                    last_n_matches_form += 3
+                elif match['away_score'] == match['home_score']:
+                    last_n_matches_form += 1
+        is_valid_last_n_matches_form = 1
+    return last_n_matches_form, is_valid_last_n_matches_form
+
+
+def _win_rate_last_n_matches(matches_df, team, match_week, n):
+    '''
+    Calculate the win rate of the last n matches for a specific team.
+    params:
+        matches_df (DataFrame): A DataFrame containing the matches.
+        team (str): The team.
+        match_week (int): The match week.
+        n (int): The number of matches to consider.
+    returns:
+        tuple: (float, int) The win rate of the last n matches and a 0/1 indicating if the value is valid.
+    '''
+    win_rate = 0.0
+    is_valid_win_rate = 0
+    if match_week > n and n > 0:
+        last_n_matches = matches_df[((matches_df['home_team'] == team) | (matches_df['away_team'] == team)) & 
+                                    (matches_df['match_week'] < match_week)].tail(n)
+        num_wins = 0
+        for _, match in last_n_matches.iterrows():
+            if match['home_team'] == team and match['home_score'] > match['away_score']:
+                num_wins += 1
+            elif match['away_team'] == team and match['away_score'] > match['home_score']:
+                num_wins += 1
+        win_rate = num_wins / n
+        is_valid_win_rate = 1
+    return win_rate, is_valid_win_rate
+
+
+def _win_last_home_match_home_team(matches_df, team, match_week):
+    '''
+    Calculate if the home team won the last home match.
+    params:
+        matches_df (DataFrame): A DataFrame containing the matches.
+        team (str): The team.
+        match_week (int): The match week.
+    returns:
+        tuple: (int(0/1), int(0/1)) 1 if the home team won the last home match, 0 otherwise, and a 0/1 indicating if the value is valid.
+    '''
+    win_last_home_match = 0
+    is_valid_win_last_home_match = 0
+    last_home_match = matches_df[(matches_df['home_team'] == team) & (matches_df['match_week'] < match_week)].tail(1)
+    if last_home_match.shape[0] > 0:
+        if last_home_match['home_score'].values[0] > last_home_match['away_score'].values[0]:
+            win_last_home_match = 1
+        is_valid_win_last_home_match = 1
+    return win_last_home_match, is_valid_win_last_home_match
+
+
+def _win_last_away_match_away_team(matches_df, team, match_week):
+    '''
+    Calculate if the away team won the last away match.
+    params:
+        matches_df (DataFrame): A DataFrame containing the matches.
+        team (str): The team.
+        match_week (int): The match week.
+    returns:
+        tuple: (int(0/1), int(0/1)) 1 if the away team won the last away match, 0 otherwise, and a 0/1 indicating if the value is valid.
+    '''
+    win_last_away_match = 0
+    is_valid_win_last_away_match = 0
+    last_away_match = matches_df[(matches_df['away_team'] == team) & (matches_df['match_week'] < match_week)].tail(1)
+    if last_away_match.shape[0] > 0:
+        if last_away_match['away_score'].values[0] > last_away_match['home_score'].values[0]:
+            win_last_away_match = 1
+        is_valid_win_last_away_match = 1
+    return win_last_away_match, is_valid_win_last_away_match
+
+
+def _num_goals_conceded_last_match(matches_df, team, match_week):
+    '''
+    Calculate the number of goals conceded in the last match by the team especified.
+    params:
+        matches_df (DataFrame): A DataFrame containing the matches.
+        team (str): The team.
+        match_week (int): The match week.
+    returns:
+        tuple: (int, int) The number of goals conceded in the last match and a 0/1 indicating if the value is valid.
+    '''
+    goals_conceded_last_match = 0
+    is_valid_goals_conceded_last_match = 0
+    last_match = matches_df[((matches_df['home_team'] == team) | (matches_df['away_team'] == team)) & 
+                            (matches_df['match_week'] < match_week)].tail(1)
+    if last_match.shape[0] > 0:
+        if last_match['home_team'].values[0] == team:
+            goals_conceded_last_match = last_match['away_score'].values[0]
+        elif last_match['away_team'].values[0] == team:
+            goals_conceded_last_match = last_match['home_score'].values[0]
+        is_valid_goals_conceded_last_match = 1
+    return goals_conceded_last_match, is_valid_goals_conceded_last_match
+
+
+def _num_goals_scored_last_match(matches_df, team, match_week):
+    '''
+    Calculate the number of goals scored in the last match by the team especified.
+    params:
+        matches_df (DataFrame): A DataFrame containing the matches.
+        team (str): The team.
+        match_week (int): The match week.
+    returns:
+        tuple: (int, int) The number of goals scored in the last match and a 0/1 indicating if the value is valid.
+    '''
+    goals_scored_last_match = 0
+    is_valid_goals_scored_last_match = 0
+    last_match = matches_df[((matches_df['home_team'] == team) | (matches_df['away_team'] == team)) & 
+                            (matches_df['match_week'] < match_week)].tail(1)
+    if last_match.shape[0] > 0:
+        if last_match['home_team'].values[0] == team:
+            goals_scored_last_match = last_match['home_score'].values[0]
+        elif last_match['away_team'].values[0] == team:
+            goals_scored_last_match = last_match['away_score'].values[0]
+        is_valid_goals_scored_last_match = 1
+    return goals_scored_last_match, is_valid_goals_scored_last_match
+
+
+def _std_shots_last_n_matches(matches_df, team, match_week, n):
+    '''
+    Calculate the standard deviation of shots in the last n matches for a specific team.
+    params:
+        matches_df (DataFrame): A DataFrame containing the matches.
+        team (str): The team.
+        match_week (int): The match week.
+        n (int): The number of matches to consider.
+    returns:
+        tuple: (float, int) The standard deviation of shots in the last n matches and a 0/1 indicating if the value is valid.
+    '''
+    std_shots = 0.0
+    is_valid_std_shots = 0
+    if match_week > n and n > 0:
+        last_n_matches = matches_df[((matches_df['home_team'] == team) | (matches_df['away_team'] == team)) & 
+                                    (matches_df['match_week'] < match_week)].tail(n)
+        shots = []
+        for _, match in last_n_matches.iterrows():
+            events_df = get_events(match['match_id'])
+            num_shots = _num_event_type(events_df, team, 'Shot')
+            shots.append(num_shots)
+        std_shots = np.std(shots)
+        is_valid_std_shots = 1
+    return std_shots, is_valid_std_shots
 
