@@ -27,7 +27,7 @@ def divide_data_in_train_test(data, target, test_size=0.2):
     returns:
         tuple: A tuple containing the training and test sets.
     '''
-    X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=test_size, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=test_size, random_state=42, stratify=target)
     return X_train, X_test, y_train, y_test
 
 
