@@ -99,10 +99,28 @@ def reduce_dimensionality(matches_processed_df):
     matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'offsides_home', 'offsides_away', 'percentage_offsides_home')
     matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'dribbles_home', 'dribbles_away', 'percentage_dribbles_home')
     matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'injury_substitutions_home', 'injury_substitutions_away', 'percentage_injury_substitutions_home')
-    matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'players_off_home', 'players_off_home', 'percentage_players_off_home')
+    matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'players_off_home', 'players_off_away', 'percentage_players_off_home')
     matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'dispossessed_home', 'dispossessed_away', 'percentage_dispossessed_home')
     matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'counterattacks_home', 'counterattacks_away', 'percentage_counterattacks_home')
     # estadística contextuales
+    ## recuperaciones
+    matches_processed_reduced_df = _percentage_of_recoveries_in_selected_third_home_team(matches_processed_reduced_df, 'attacking')
+    matches_processed_reduced_df = _percentage_of_recoveries_in_selected_third_home_team(matches_processed_reduced_df, 'middle')
+    matches_processed_reduced_df = _percentage_of_recoveries_in_selected_third_home_team(matches_processed_reduced_df, 'defensive')
+    ## eventos bajo presión
+    matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'shots_under_pressure_home', 'shots_under_pressure_away', 'percentage_shots_under_pressure_home')
+    matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'shots_inside_area_under_pressure_home', 'shots_inside_area_under_pressure_away', 'percentage_shots_inside_area_under_pressure_home')
+    matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'passes_under_pressure_home', 'passes_under_pressure_away', 'percentage_passes_under_pressure_home')
+    matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'passes_inside_area_under_pressure_home', 'passes_inside_area_under_pressure_away', 'percentage_passes_inside_area_under_pressure_home')
+    ## jugadas a balón parado
+    matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'set_piece_shots_home', 'set_piece_shots_away', 'percentage_set_piece_shots_home')
+    matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'set_piece_shots_inside_area_home', 'set_piece_shots_inside_area_away', 'percentage_set_piece_shots_inside_area_home')
+    # tácticas
+    matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'substitutions_home', 'substitutions_away', 'percentage_substitutions_home')
+    matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'tactical_substitutions_home', 'tactical_substitutions_away', 'percentage_tactical_substitutions_home')
+    matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'tactical_changes_home', 'tactical_changes_away', 'percentage_tactical_changes_home')
+    matches_processed_reduced_df = _percentage_of_metric_home_team(matches_processed_reduced_df, 'formation_changes_home', 'formation_changes_away', 'percentage_formation_changes_home')
+
     return matches_processed_reduced_df
 
 
@@ -155,5 +173,22 @@ def _difference_of_passes_needed_to_make_a_shot_home_team(matches_processed_df):
     '''
     matches_processed_df['difference_passes_needed_to_make_a_shot_home'] = matches_processed_df['passes_needed_to_make_a_shot_home'] - matches_processed_df['passes_needed_to_make_a_shot_away']
     matches_processed_df.drop(['passes_needed_to_make_a_shot_home', 'passes_needed_to_make_a_shot_away'], axis=1, inplace=True)
+    return matches_processed_df
+
+
+def _percentage_of_recoveries_in_selected_third_home_team(matches_processed_df, part):
+    '''
+    Calculates the percentage of recoveries in a selected third of the home team.
+    params:
+        matches_processed_df (DataFrame): A DataFrame containing the processed data.
+        part (str): The selected third.
+    returns:
+        DataFrame: A DataFrame containing the percentage of recoveries in the selected third of the home team.
+    '''
+    if part not in ['defensive', 'middle', 'attacking']:
+        raise ValueError('Invalid part. Valid parts are: defensive, middle, attacking')
+    total_recoveries = matches_processed_df[f'recoveries_{part}_third_home'] + matches_processed_df[f'recoveries_{part}_third_away']
+    matches_processed_df[f'percentage_recoveries_{part}_third_home'] = (matches_processed_df[f'recoveries_{part}_third_home'] / total_recoveries).fillna(0.5)
+    matches_processed_df.drop([f'recoveries_{part}_third_home', f'recoveries_{part}_third_away'], axis=1, inplace=True)
     return matches_processed_df
 
