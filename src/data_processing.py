@@ -104,8 +104,8 @@ def _process_match(matches_df, events_df, home_team, away_team, match_week, winn
         "pass_success_ratio_away": _ratio_sucess_passes(events_df, away_team),
         "key_passes_home": _num_key_passes(events_df, home_team),
         "key_passes_away": _num_key_passes(events_df, away_team),
-        "passes_needed_to_make_a_shoot_home": _num_passes_needed_to_make_a_shoot(events_df, home_team),
-        "passes_needed_to_make_a_shoot_away": _num_passes_needed_to_make_a_shoot(events_df, away_team),
+        "passes_needed_to_make_a_shot_home": _num_passes_needed_to_make_a_shot(events_df, home_team),
+        "passes_needed_to_make_a_shot_away": _num_passes_needed_to_make_a_shot(events_df, away_team),
         "crosses_home": _num_crosses(events_df, home_team),
         "crosses_away": _num_crosses(events_df, away_team),
         "cross_success_ratio_home": _ratio_success_crosses(events_df, home_team),
@@ -413,14 +413,14 @@ def _num_key_passes(events_df, team):
                                    (events_df['pass_assisted_shot_id'].notnull())].shape[0]     # pase asistente
     return num_key_passes
     
-def _num_passes_needed_to_make_a_shoot(events_df, team):
+def _num_passes_needed_to_make_a_shot(events_df, team):
     '''
-    Calculate the number of passes needed to make a shoot for a specific team.
+    Calculate the number of passes needed to make a shot for a specific team.
     params:
         events_df (DataFrame): A DataFrame containing the events.
         team (str): The team.
     returns:
-        int: The number of passes needed to make a shoot.
+        int: The number of passes needed to make a shot.
     '''
     num_shots = _num_event_type(events_df, team, 'Shot')
     num_passes = _num_event_type(events_df, team, 'Pass')
