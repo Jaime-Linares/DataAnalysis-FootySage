@@ -231,21 +231,41 @@ class ExperimentLauncher:
     def __decision_tree_selected_features_train_and_evaluate(self, dt_grid_search, dt_best_model):
         X, y, encoder = self.__preprocessing("multiclass")
 
-        # importancia de características
-        feature_importances = pd.DataFrame({
-            'Feature': X.columns,
-            'Importance': dt_best_model.named_steps['classifier'].feature_importances_
-        }).sort_values(by='Importance', ascending=False)
+        # calculamos la información mutua para variables continuas con random_state
+        mi_continuous = mutual_info_regression(X, y, random_state=42)
 
-        # filtramos la características con importancia mayor a un umbral
-        important_features = feature_importances[feature_importances['Importance'] > 0.0]['Feature']
+        # creamos un DataFrame para mostrar los resultados junto con los nombres de las columnas
+        mi_results_mutual_information = pd.DataFrame({
+            'Feature': X.columns,
+            'Mutual Information': mi_continuous
+        }).sort_values(by='Mutual Information', ascending=False)
+
+        # filtramos las características con coeficientes mayores a un umbral
+        important_features = mi_results_mutual_information[mi_results_mutual_information['Mutual Information'] > 0.025]['Feature']
         X_reduced = X[important_features]
 
         # dividimos los datos reducidos en entrenamiento y prueba
         X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y, test_size=0.2)
 
-        # entrenamos el modelo con las características reducidas
+        # definimos un pipeline para el modelo DecisionTreeClassifier
+        dt_pipeline = Pipeline([
+            ('classifier', DecisionTreeClassifier(random_state=42))
+        ])
+
+        # definimos el espacio de búsqueda de hiperparámetros
+        dt_param_grid = {
+            'classifier__max_depth': [2, 3, 5, 7, 9],
+            'classifier__criterion': ['gini', 'entropy'],
+            'classifier__max_features': ['sqrt', 'log2', None]
+        }
+
+        # realizamos la búsqueda de hiperparámetros
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        dt_grid_search = GridSearchCV(dt_pipeline, dt_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
         dt_grid_search.fit(X_train_reduced, y_train)
+
+        # entrenamos el modelo con las características reducidas
+        #dt_grid_search.fit(X_train_reduced, y_train)
         # mejores parámetros
         print("Best hyperparameters:", dt_grid_search.best_params_)
         # mejor modelo reducido
