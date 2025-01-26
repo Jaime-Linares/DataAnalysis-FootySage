@@ -56,7 +56,7 @@ class ExperimentLauncher:
         rf_param_grid = {
             'classifier__n_estimators': [15, 20, 35, 40, 50],
             'classifier__max_depth': [3, 4, 5, 6, 8],
-            'classifier__criterion': ['gini', 'entropy', 'log_loss'],
+            'classifier__criterion': ['gini', 'entropy'],
             'classifier__max_features': ['sqrt', 'log2', None]
         }
 
@@ -137,7 +137,7 @@ class ExperimentLauncher:
 
         # validación cruzada
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        cv_scores_reduced = cross_val_score(rf_best_model_reduced, X_train_reduced, y_train, cv=skf, scoring='f1_macro')
+        cv_scores_reduced = cross_val_score(rf_best_model_reduced, X_train_reduced, y_train, cv=skf, scoring='accuracy')
         #print(f"Cross-Validation Accuracy (Reduced): {cv_scores_reduced.mean():.4f} +/- {cv_scores_reduced.std():.4f}")
 
         # predicciones en el conjunto de prueba
@@ -177,13 +177,14 @@ class ExperimentLauncher:
 
         # definimos el espacio de búsqueda de hiperparámetros
         dt_param_grid = {
-            'classifier__max_depth': [4, 5, 8, 10, 12],
-            'classifier__min_samples_split': [2, 5, 8],
-            'classifier__min_samples_leaf': [1, 2, 4]
+            'classifier__max_depth': [3, 5, 7, 9, 12],
+            'classifier__criterion': ['gini', 'entropy'],
+            'classifier__max_features': ['sqrt', 'log2', None]
         }
 
         # realizamos la búsqueda de hiperparámetros
-        grid_search = GridSearchCV(dt_pipeline, dt_param_grid, cv=5, scoring='accuracy', verbose=1, n_jobs=-1)
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        grid_search = GridSearchCV(dt_pipeline, dt_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
         grid_search.fit(X_train, y_train)
 
         # mejores parámetros
@@ -198,7 +199,7 @@ class ExperimentLauncher:
         #print(f"Test Accuracy: {test_accuracy:.4f}")
 
         # validación cruzada con el mejor modelo
-        cv_scores = cross_val_score(dt_best_model, X_train, y_train, cv=5, scoring='accuracy')
+        cv_scores = cross_val_score(dt_best_model, X_train, y_train, cv=skf, scoring='accuracy')
         #print(f"Cross-Validation Accuracy: {cv_scores.mean():.4f} +/- {cv_scores.std():.4f}")
 
         # predicciones en el conjunto de prueba
@@ -237,7 +238,7 @@ class ExperimentLauncher:
         }).sort_values(by='Importance', ascending=False)
 
         # filtramos la características con importancia mayor a un umbral
-        important_features = feature_importances[feature_importances['Importance'] > 0.0001]['Feature']
+        important_features = feature_importances[feature_importances['Importance'] > 0.0]['Feature']
         X_reduced = X[important_features]
 
         # dividimos los datos reducidos en entrenamiento y prueba
@@ -257,7 +258,8 @@ class ExperimentLauncher:
         #print(f"Test Accuracy (Reduced): {test_accuracy_reduced:.4f}")
 
         # validación cruzada
-        cv_scores_reduced = cross_val_score(dt_best_model_reduced, X_train_reduced, y_train, cv=5, scoring='accuracy')
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        cv_scores_reduced = cross_val_score(dt_best_model_reduced, X_train_reduced, y_train, cv=skf, scoring='accuracy')
         #print(f"Cross-Validation Accuracy (Reduced): {cv_scores_reduced.mean():.4f} +/- {cv_scores_reduced.std():.4f}")
 
         # predicciones en el conjunto de prueba
@@ -269,7 +271,7 @@ class ExperimentLauncher:
         sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
         plt.xlabel('Predicted label')
         plt.ylabel('True label')
-        plt.title('Confusion Matriz - RandomForest')
+        plt.title('Confusion Matrix - DecisionTree Reduced')
         plt.show()   
 
         # reporte de clasificación
