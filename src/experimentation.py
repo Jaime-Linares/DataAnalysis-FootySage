@@ -437,13 +437,14 @@ class ExperimentLauncher:
 
         # definimos el espacio de búsqueda de hiperparámetros
         knn_param_grid = {
-            'classifier__n_neighbors': [3, 5, 7, 9, 11, 13],
+            'classifier__n_neighbors': [5, 7, 9, 11, 13, 15, 17, 20, 23],
             'classifier__weights': ['uniform', 'distance'],
-            'classifier__metric': ['euclidean', 'manhattan', 'minkowski']
+            'classifier__metric': ['euclidean', 'manhattan', 'minkowski', 'chebyshev']
         }
 
         # realizamos la búsqueda de hiperparámetros
-        grid_search = GridSearchCV(knn_pipeline, knn_param_grid, cv=5, scoring='accuracy', verbose=1, n_jobs=-1)
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        grid_search = GridSearchCV(knn_pipeline, knn_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
         grid_search.fit(X_train, y_train)
 
         # mejores parámetros
@@ -458,7 +459,7 @@ class ExperimentLauncher:
         #print(f"Test Accuracy: {test_accuracy:.4f}")
 
         # validación cruzada con el mejor modelo
-        cv_scores = cross_val_score(knn_best_model, X_train, y_train, cv=5, scoring='accuracy')
+        cv_scores = cross_val_score(knn_best_model, X_train, y_train, cv=skf, scoring='accuracy')
         #print(f"Cross-Validation Accuracy: {cv_scores.mean():.4f} +/- {cv_scores.std():.4f}")
 
         # predicciones en el conjunto de prueba
@@ -500,7 +501,7 @@ class ExperimentLauncher:
         }).sort_values(by='Mutual Information', ascending=False)
 
         # filtramos las características con coeficientes mayores a un umbral
-        important_features = mi_results_mutual_information[mi_results_mutual_information['Mutual Information'] > 0.025]['Feature']
+        important_features = mi_results_mutual_information[mi_results_mutual_information['Mutual Information'] > 0.03]['Feature']
         X_reduced = X[important_features]
 
         # dividimos los datos reducidos en entrenamiento y prueba
@@ -518,13 +519,14 @@ class ExperimentLauncher:
 
         # evaluación del modelo reducido
         train_accuracy_reduced = knn_best_model_reduced.score(X_train_reduced, y_train)
-        print(f"Train Accuracy (Reduced): {train_accuracy_reduced:.4f}")
+        #print(f"Train Accuracy (Reduced): {train_accuracy_reduced:.4f}")
         test_accuracy_reduced = knn_best_model_reduced.score(X_test_reduced, y_test)
-        print(f"Test Accuracy (Reduced): {test_accuracy_reduced:.4f}")
+        #print(f"Test Accuracy (Reduced): {test_accuracy_reduced:.4f}")
 
         # validación cruzada con el modelo reducido
-        cv_scores_reduced = cross_val_score(knn_best_model_reduced, X_train_reduced, y_train, cv=5, scoring='accuracy')
-        print(f"Cross-Validation Accuracy (Reduced): {cv_scores_reduced.mean():.4f} +/- {cv_scores_reduced.std():.4f}")
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        cv_scores_reduced = cross_val_score(knn_best_model_reduced, X_train_reduced, y_train, cv=skf, scoring='accuracy')
+        #print(f"Cross-Validation Accuracy (Reduced): {cv_scores_reduced.mean():.4f} +/- {cv_scores_reduced.std():.4f}")
 
         # predicciones en el conjunto de prueba reducido
         y_pred_reduced = knn_best_model_reduced.predict(X_test_reduced)
@@ -535,7 +537,7 @@ class ExperimentLauncher:
         sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
         plt.xlabel('Predicted label')
         plt.ylabel('True label')
-        plt.title('Confusion Matrix - Logistic Regression Reduced')
+        plt.title('Confusion Matrix - KNN Reduced')
         plt.show()   
 
         # reporte de clasificación
@@ -569,7 +571,7 @@ class ExperimentLauncher:
         return self.matches_df.copy()
     
 
-    def __show_results(self, rf_eval, rf_reduced_eval, dt_eval, dt_reduced_eval, lr_eval, lr_reduced_eval, knn_eval, knn_reduced_eval):
+    def __show_results(self, rf_eval=None, rf_reduced_eval=None, dt_eval=None, dt_reduced_eval=None, lr_eval=None, lr_reduced_eval=None, knn_eval=None, knn_reduced_eval=None):
         results = {
             "RF": rf_eval, "RF_Reduced": rf_reduced_eval,
             "DT": dt_eval, "DT_Reduced": dt_reduced_eval,
