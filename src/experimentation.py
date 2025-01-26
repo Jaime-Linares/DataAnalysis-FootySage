@@ -44,7 +44,7 @@ class ExperimentLauncher:
 
 
     def __random_forest_train_and_evaluate(self):
-        X, y, encoder = self.__preprocessing("multiclass")
+        X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = self.__divide_data_in_train_and_test(X, y)
 
         # definimos un pipeline para el modelo RandomForestClassifier
@@ -107,7 +107,7 @@ class ExperimentLauncher:
     
 
     def __random_forest_selected_features_train_and_evaluate(self, rf_grid_search, rf_best_model):
-        X, y, encoder = self.__preprocessing("multiclass")
+        X, y, encoder = self.__preprocessing()
 
         # importancia de características
         feature_importances = pd.DataFrame({
@@ -167,7 +167,7 @@ class ExperimentLauncher:
     
 
     def __decision_tree_train_and_evaluate(self):
-        X, y, encoder = self.__preprocessing("multiclass")
+        X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = self.__divide_data_in_train_and_test(X, y)
 
         # definimos un pipeline para el modelo DecisionTreeClassifier
@@ -229,7 +229,7 @@ class ExperimentLauncher:
     
 
     def __decision_tree_selected_features_train_and_evaluate(self, dt_grid_search, dt_best_model):
-        X, y, encoder = self.__preprocessing("multiclass")
+        X, y, encoder = self.__preprocessing()
 
         # calculamos la información mutua para variables continuas con random_state
         mi_continuous = mutual_info_regression(X, y, random_state=42)
@@ -309,7 +309,7 @@ class ExperimentLauncher:
     
 
     def __logistic_regression_train_and_evaluate(self):
-        X, y, encoder = self.__preprocessing("one-hot")
+        X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = self.__divide_data_in_train_and_test(X, y)
 
         # definimos un pipeline para el modelo LogisticRegression con StandardScaler
@@ -320,8 +320,8 @@ class ExperimentLauncher:
 
         # definimos el espacio de búsqueda de hiperparámetros
         lr_param_grid = [
-            {'classifier__penalty': ['l1'], 'classifier__solver': ['liblinear', 'saga'], 'classifier__C': [0.01, 0.1, 1, 10, 100]},
-            {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'liblinear', 'saga', 'newton-cg'], 'classifier__C': [0.01, 0.1, 1, 10, 100]},
+            {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': [0.01, 0.1, 1, 10, 100]},
+            {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg'], 'classifier__C': [0.01, 0.1, 1, 10, 100]},
             {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.01, 0.1, 1, 10, 100], 'classifier__l1_ratio': [0.1, 0.5, 0.9]},
             {'classifier__penalty': [None], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg']}
         ]
@@ -372,7 +372,7 @@ class ExperimentLauncher:
     
 
     def __logistic_regression_selected_features_train_and_evaluate(self, lr_grid_search, lr_best_model):
-        X, y, encoder = self.__preprocessing("one-hot")
+        X, y, encoder = self.__preprocessing()
 
         # coeficientes del modelo
         feature_importances = pd.DataFrame({
@@ -431,7 +431,7 @@ class ExperimentLauncher:
     
 
     def __knn_train_and_evaluate(self):
-        X, y, encoder = self.__preprocessing("multiclass")
+        X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = self.__divide_data_in_train_and_test(X, y)
 
         # definimos un pipeline para el modelo KNeighborsClassifier con StandardScaler
@@ -493,7 +493,7 @@ class ExperimentLauncher:
     
 
     def __knn_selected_features_train_and_evaluate(self, knn_grid_search, knn_best_model):
-        X, y, encoder = self.__preprocessing("one-hot")
+        X, y, encoder = self.__preprocessing()
 
         # calculamos la información mutua para variables continuas con random_state
         mi_continuous = mutual_info_regression(X, y, random_state=42)
@@ -557,16 +557,11 @@ class ExperimentLauncher:
         return eval
     
 
-    def __preprocessing(self, type):
+    def __preprocessing(self):
         matches_df = self.__get_matches()
         X = matches_df.drop(columns=["winner_team"])
         y = matches_df["winner_team"]
-
-        if type == "multiclass":
-            y, encoder = code_categorical_data_multiclass(y)
-        elif type == "one-hot":
-            y, encoder = code_categorical_data_multiclass(y)
-
+        y, encoder = code_categorical_data_multiclass(y)
         return X, y, encoder
     
 
