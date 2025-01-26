@@ -7,7 +7,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_val_score
 import pandas as pd
-from sklearn.feature_selection import mutual_info_regression
+from sklearn.feature_selection import mutual_info_regression, SelectFromModel
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import classification_report
 import matplotlib.pyplot as plt
@@ -315,19 +315,20 @@ class ExperimentLauncher:
         # definimos un pipeline para el modelo LogisticRegression con StandardScaler
         lr_pipeline = Pipeline([
             ('scaler', StandardScaler()),
-            ('classifier', LogisticRegression(random_state=42, max_iter=1000))
+            ('classifier', LogisticRegression(random_state=42, max_iter=25))
         ])
 
         # definimos el espacio de búsqueda de hiperparámetros
         lr_param_grid = [
-            {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': [0.01, 0.1, 1, 10, 100]},
-            {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg'], 'classifier__C': [0.01, 0.1, 1, 10, 100]},
-            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.01, 0.1, 1, 10, 100], 'classifier__l1_ratio': [0.1, 0.5, 0.9]},
+            {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100]},
+            {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg'], 'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100]},
+            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100], 'classifier__l1_ratio': [0.1, 0.2, 0.3, 0.5, 0.7, 0.9]},
             {'classifier__penalty': [None], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg']}
         ]
 
         # realizamos la búsqueda de hiperparámetros
-        grid_search = GridSearchCV(lr_pipeline, lr_param_grid, cv=5, scoring='accuracy', verbose=1, n_jobs=-1)
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        grid_search = GridSearchCV(lr_pipeline, lr_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
         grid_search.fit(X_train, y_train)
 
         # mejores parámetros
@@ -342,7 +343,7 @@ class ExperimentLauncher:
         #print(f"Test Accuracy: {test_accuracy:.4f}")
 
         # validación cruzada con el mejor modelo
-        cv_scores = cross_val_score(lr_best_model, X_train, y_train, cv=5, scoring='accuracy')
+        cv_scores = cross_val_score(lr_best_model, X_train, y_train, cv=skf, scoring='accuracy')
         #print(f"Cross-Validation Accuracy: {cv_scores.mean():.4f} +/- {cv_scores.std():.4f}")
 
         # predicciones en el conjunto de prueba
@@ -374,15 +375,8 @@ class ExperimentLauncher:
     def __logistic_regression_selected_features_train_and_evaluate(self, lr_grid_search, lr_best_model):
         X, y, encoder = self.__preprocessing()
 
-        # coeficientes del modelo
-        feature_importances = pd.DataFrame({
-            'Feature': X.columns,
-            'Coefficient': lr_best_model.named_steps['classifier'].coef_[0]
-        }).sort_values(by='Coefficient', ascending=False)
-
-        # filtramos las características con coeficientes mayores a un umbral
-        important_features = feature_importances[feature_importances['Coefficient'].abs() > 0.001]['Feature']
-        X_reduced = X[important_features]
+        selector = SelectFromModel(estimator=LogisticRegression(penalty='elasticnet', solver='saga', random_state=42, max_iter=1000, l1_ratio=0.2, C=0.1), threshold='1.6*mean')
+        X_reduced = selector.fit_transform(X, y)
 
         # dividimos los datos reducidos en entrenamiento y prueba
         X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y, test_size=0.2)
@@ -401,7 +395,8 @@ class ExperimentLauncher:
         #print(f"Test Accuracy (Reduced): {test_accuracy_reduced:.4f}")
 
         # validación cruzada con el modelo reducido
-        cv_scores_reduced = cross_val_score(lr_best_model_reduced, X_train_reduced, y_train, cv=5, scoring='accuracy')
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        cv_scores_reduced = cross_val_score(lr_best_model_reduced, X_train_reduced, y_train, cv=skf, scoring='accuracy')
         #print(f"Cross-Validation Accuracy (Reduced): {cv_scores_reduced.mean():.4f} +/- {cv_scores_reduced.std():.4f}")
 
         # predicciones en el conjunto de prueba reducido
