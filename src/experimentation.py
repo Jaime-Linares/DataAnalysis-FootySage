@@ -1,15 +1,14 @@
 from src.data_preparation import code_categorical_data_multiclass, divide_data_in_train_test
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_val_score
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix, classification_report
 import pandas as pd
 from sklearn.feature_selection import mutual_info_regression, SelectFromModel
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import classification_report
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -19,31 +18,39 @@ class ExperimentLauncher:
 
     def __init__(self, matches_df):
         self.matches_df = matches_df
+        self.train_accuracy = [None] * 8
+        self.test_accuracy = [None] * 8
+        self.precision_macro = [None] * 8
+        self.precision_weighted = [None] * 8
+        self.recall_macro = [None] * 8
+        self.recall_weighted = [None] * 8
+        self.f1_macro = [None] * 8
+        self.f1_weighted = [None] * 8
 
 
     def run(self):
         print("Starting experiment...")
         print("Random Forest")
-        rf_grid_search, rf_best_model, rf_eval = self.__random_forest_train_and_evaluate()
+        rf_grid_search, rf_best_model = self.__random_forest_train_and_evaluate(0)
         print("Random Forest Selected Features")
-        rf_reduced_eval = self.__random_forest_selected_features_train_and_evaluate(rf_grid_search, rf_best_model)
+        self.__random_forest_selected_features_train_and_evaluate(1, rf_grid_search, rf_best_model)
         print("Decision Tree")
-        dt_grid_search, dt_best_model, dt_eval = self.__decision_tree_train_and_evaluate()
+        dt_grid_search, dt_best_model = self.__decision_tree_train_and_evaluate(2)
         print("Decision Tree Selected Features")
-        dt_reduced_eval = self.__decision_tree_selected_features_train_and_evaluate(dt_grid_search, dt_best_model)
+        self.__decision_tree_selected_features_train_and_evaluate(3, dt_grid_search, dt_best_model)
         print("Logistic Regression")
-        lr_grid_search, lr_best_model, lr_eval = self.__logistic_regression_train_and_evaluate()
+        lr_grid_search, lr_best_model = self.__logistic_regression_train_and_evaluate(4)
         print("Logistic Regression Selected Features")
-        lr_reduced_eval = self.__logistic_regression_selected_features_train_and_evaluate(lr_grid_search, lr_best_model)
+        self.__logistic_regression_selected_features_train_and_evaluate(5, lr_grid_search, lr_best_model)
         print("KNN")
-        knn_grid_search, knn_best_model, knn_eval = self.__knn_train_and_evaluate()
+        knn_grid_search, knn_best_model = self.__knn_train_and_evaluate(6)
         print("KNN Selected Features")
-        knn_reduced_eval = self.__knn_selected_features_train_and_evaluate(knn_grid_search, knn_best_model)
+        self.__knn_selected_features_train_and_evaluate(7, knn_grid_search, knn_best_model)
         print("Experiment finished.")
-        return self.__show_results(rf_eval, rf_reduced_eval, dt_eval, dt_reduced_eval, lr_eval, lr_reduced_eval, knn_eval, knn_reduced_eval)
+        return self.__show_results()
 
 
-    def __random_forest_train_and_evaluate(self):
+    def __random_forest_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = self.__divide_data_in_train_and_test(X, y)
 
@@ -70,18 +77,11 @@ class ExperimentLauncher:
         # mejor modelo
         rf_best_model = grid_search.best_estimator_
 
-        # evaluación en el conjunto de entrenamiento y prueba
-        train_accuracy = rf_best_model.score(X_train, y_train)
-        #print(f"Train Accuracy: {train_accuracy:.4f}")
-        test_accuracy = rf_best_model.score(X_test, y_test)
-        #print(f"Test Accuracy: {test_accuracy:.4f}")
-
-        # validación cruzada con el mejor modelo
-        cv_scores = cross_val_score(rf_best_model, X_train, y_train, cv=skf, scoring='accuracy')
-        #print(f"Cross-Validation Accuracy: {cv_scores.mean():.4f} +/- {cv_scores.std():.4f}")
-
         # predicciones en el conjunto de prueba
         y_pred = rf_best_model.predict(X_test)
+
+        # calculamos las métricas de evaluación y las añadimos a las listas
+        self.__calculate_and_add_metrics(position, rf_best_model, X_train, X_test, y_train, y_test, y_pred)
 
         # matriz de confusión
         conf_matrix = confusion_matrix(y_test, y_pred)
@@ -94,19 +94,11 @@ class ExperimentLauncher:
 
         # reporte de clasificación
         print(classification_report(y_test, y_pred))    
-
-        # evaluación del modelos
-        eval = {
-            "train_accuracy": train_accuracy,
-            "test_accuracy": test_accuracy,
-            "cv_scores_mean": cv_scores.mean(),
-            "cv_scores_std": cv_scores.std()
-        }
         
-        return grid_search, rf_best_model, eval
+        return grid_search, rf_best_model
     
 
-    def __random_forest_selected_features_train_and_evaluate(self, rf_grid_search, rf_best_model):
+    def __random_forest_selected_features_train_and_evaluate(self, position, rf_grid_search, rf_best_model):
         X, y, encoder = self.__preprocessing()
 
         # importancia de características
@@ -129,19 +121,11 @@ class ExperimentLauncher:
         # mejor modelo reducido
         rf_best_model_reduced = rf_grid_search.best_estimator_
 
-        # evaluamos el modelo
-        train_accuracy_reduced = rf_best_model_reduced.score(X_train_reduced, y_train)
-        #print(f"Train Accuracy (Reduced): {train_accuracy_reduced:.4f}")
-        test_accuracy_reduced = rf_best_model_reduced.score(X_test_reduced, y_test)
-        #print(f"Test Accuracy (Reduced): {test_accuracy_reduced:.4f}")
-
-        # validación cruzada
-        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        cv_scores_reduced = cross_val_score(rf_best_model_reduced, X_train_reduced, y_train, cv=skf, scoring='accuracy')
-        #print(f"Cross-Validation Accuracy (Reduced): {cv_scores_reduced.mean():.4f} +/- {cv_scores_reduced.std():.4f}")
-
         # predicciones en el conjunto de prueba
         y_pred_reduced = rf_best_model_reduced.predict(X_test_reduced)
+
+        # calculamos las métricas de evaluación y las añadimos a las listas
+        self.__calculate_and_add_metrics(position, rf_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced)
 
         # matriz de confusión
         conf_matrix = confusion_matrix(y_test, y_pred_reduced)
@@ -154,19 +138,9 @@ class ExperimentLauncher:
 
         # reporte de clasificación
         print(classification_report(y_test, y_pred_reduced))
-
-        # evaluación del modelos
-        eval = {
-            "train_accuracy": train_accuracy_reduced,
-            "test_accuracy": test_accuracy_reduced,
-            "cv_scores_mean": cv_scores_reduced.mean(),
-            "cv_scores_std": cv_scores_reduced.std()
-        }
-        
-        return eval
     
 
-    def __decision_tree_train_and_evaluate(self):
+    def __decision_tree_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = self.__divide_data_in_train_and_test(X, y)
 
@@ -192,18 +166,11 @@ class ExperimentLauncher:
         # mejor modelo
         dt_best_model = grid_search.best_estimator_
 
-        # evaluación en el conjunto de entrenamiento y prueba
-        train_accuracy = dt_best_model.score(X_train, y_train)
-        #print(f"Train Accuracy: {train_accuracy:.4f}")
-        test_accuracy = dt_best_model.score(X_test, y_test)
-        #print(f"Test Accuracy: {test_accuracy:.4f}")
-
-        # validación cruzada con el mejor modelo
-        cv_scores = cross_val_score(dt_best_model, X_train, y_train, cv=skf, scoring='accuracy')
-        #print(f"Cross-Validation Accuracy: {cv_scores.mean():.4f} +/- {cv_scores.std():.4f}")
-
         # predicciones en el conjunto de prueba
         y_pred = dt_best_model.predict(X_test)
+
+        # calculamos las métricas de evaluación y las añadimos a las listas
+        self.__calculate_and_add_metrics(position, dt_best_model, X_train, X_test, y_train, y_test, y_pred)
 
         # matriz de confusión
         conf_matrix = confusion_matrix(y_test, y_pred)
@@ -215,20 +182,12 @@ class ExperimentLauncher:
         plt.show()
 
         # reporte de clasificación
-        print(classification_report(y_test, y_pred))   
-
-        # evaluación del modelos
-        eval = {
-            "train_accuracy": train_accuracy,
-            "test_accuracy": test_accuracy,
-            "cv_scores_mean": cv_scores.mean(),
-            "cv_scores_std": cv_scores.std()
-        }
+        print(classification_report(y_test, y_pred)) 
         
-        return grid_search, dt_best_model, eval
+        return grid_search, dt_best_model
     
 
-    def __decision_tree_selected_features_train_and_evaluate(self, dt_grid_search, dt_best_model):
+    def __decision_tree_selected_features_train_and_evaluate(self, position, dt_grid_search, dt_best_model):
         X, y, encoder = self.__preprocessing()
 
         # calculamos la información mutua para variables continuas con random_state
@@ -271,19 +230,11 @@ class ExperimentLauncher:
         # mejor modelo reducido
         dt_best_model_reduced = dt_grid_search.best_estimator_
 
-        # evaluamos el modelo
-        train_accuracy_reduced = dt_best_model_reduced.score(X_train_reduced, y_train)
-        #print(f"Train Accuracy (Reduced): {train_accuracy_reduced:.4f}")
-        test_accuracy_reduced = dt_best_model_reduced.score(X_test_reduced, y_test)
-        #print(f"Test Accuracy (Reduced): {test_accuracy_reduced:.4f}")
-
-        # validación cruzada
-        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        cv_scores_reduced = cross_val_score(dt_best_model_reduced, X_train_reduced, y_train, cv=skf, scoring='accuracy')
-        #print(f"Cross-Validation Accuracy (Reduced): {cv_scores_reduced.mean():.4f} +/- {cv_scores_reduced.std():.4f}")
-
         # predicciones en el conjunto de prueba
         y_pred_reduced = dt_best_model_reduced.predict(X_test_reduced)
+
+        # calculamos las métricas de evaluación y las añadimos a las listas
+        self.__calculate_and_add_metrics(position, dt_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced)
 
         # matriz de confusión
         conf_matrix = confusion_matrix(y_test, y_pred_reduced)
@@ -296,19 +247,9 @@ class ExperimentLauncher:
 
         # reporte de clasificación
         print(classification_report(y_test, y_pred_reduced))
-
-        # evaluación del modelos
-        eval = {
-            "train_accuracy": train_accuracy_reduced,
-            "test_accuracy": test_accuracy_reduced,
-            "cv_scores_mean": cv_scores_reduced.mean(),
-            "cv_scores_std": cv_scores_reduced.std()
-        }
-        
-        return eval
     
 
-    def __logistic_regression_train_and_evaluate(self):
+    def __logistic_regression_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = self.__divide_data_in_train_and_test(X, y)
 
@@ -336,18 +277,11 @@ class ExperimentLauncher:
         # mejor modelo
         lr_best_model = grid_search.best_estimator_
 
-        # evaluación en el conjunto de entrenamiento y prueba
-        train_accuracy = lr_best_model.score(X_train, y_train)
-        #print(f"Train Accuracy: {train_accuracy:.4f}")
-        test_accuracy = lr_best_model.score(X_test, y_test)
-        #print(f"Test Accuracy: {test_accuracy:.4f}")
-
-        # validación cruzada con el mejor modelo
-        cv_scores = cross_val_score(lr_best_model, X_train, y_train, cv=skf, scoring='accuracy')
-        #print(f"Cross-Validation Accuracy: {cv_scores.mean():.4f} +/- {cv_scores.std():.4f}")
-
         # predicciones en el conjunto de prueba
         y_pred = lr_best_model.predict(X_test)
+
+        # calculamos las métricas de evaluación y las añadimos a las listas
+        self.__calculate_and_add_metrics(position, lr_best_model, X_train, X_test, y_train, y_test, y_pred)
 
         # matriz de confusión
         conf_matrix = confusion_matrix(y_test, y_pred)
@@ -359,20 +293,12 @@ class ExperimentLauncher:
         plt.show()
 
         # reporte de clasificación
-        print(classification_report(y_test, y_pred))  
-
-        # evaluación del modelos
-        eval = {
-            "train_accuracy": train_accuracy,
-            "test_accuracy": test_accuracy,
-            "cv_scores_mean": cv_scores.mean(),
-            "cv_scores_std": cv_scores.std()
-        }
+        print(classification_report(y_test, y_pred))
         
-        return grid_search, lr_best_model, eval
+        return grid_search, lr_best_model
     
 
-    def __logistic_regression_selected_features_train_and_evaluate(self, lr_grid_search, lr_best_model):
+    def __logistic_regression_selected_features_train_and_evaluate(self, position, lr_grid_search, lr_best_model):
         X, y, encoder = self.__preprocessing()
 
         selector = SelectFromModel(estimator=LogisticRegression(penalty='elasticnet', solver='saga', random_state=42, max_iter=1000, l1_ratio=0.2, C=0.1), threshold='1.6*mean')
@@ -388,19 +314,11 @@ class ExperimentLauncher:
         # mejor modelo reducido
         lr_best_model_reduced = lr_grid_search.best_estimator_
 
-        # evaluación del modelo reducido
-        train_accuracy_reduced = lr_best_model_reduced.score(X_train_reduced, y_train)
-        #print(f"Train Accuracy (Reduced): {train_accuracy_reduced:.4f}")
-        test_accuracy_reduced = lr_best_model_reduced.score(X_test_reduced, y_test)
-        #print(f"Test Accuracy (Reduced): {test_accuracy_reduced:.4f}")
-
-        # validación cruzada con el modelo reducido
-        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        cv_scores_reduced = cross_val_score(lr_best_model_reduced, X_train_reduced, y_train, cv=skf, scoring='accuracy')
-        #print(f"Cross-Validation Accuracy (Reduced): {cv_scores_reduced.mean():.4f} +/- {cv_scores_reduced.std():.4f}")
-
         # predicciones en el conjunto de prueba reducido
         y_pred_reduced = lr_best_model_reduced.predict(X_test_reduced)
+
+        # calculamos las métricas de evaluación y las añadimos a las listas
+        self.__calculate_and_add_metrics(position, lr_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced)
 
         # matriz de confusión para modelo reducido
         conf_matrix = confusion_matrix(y_test, y_pred_reduced)
@@ -413,19 +331,9 @@ class ExperimentLauncher:
 
         # reporte de clasificación
         print(classification_report(y_test, y_pred_reduced))
-
-        # evaluación del modelos
-        eval = {
-            "train_accuracy": train_accuracy_reduced,
-            "test_accuracy": test_accuracy_reduced,
-            "cv_scores_mean": cv_scores_reduced.mean(),
-            "cv_scores_std": cv_scores_reduced.std()
-        }
-        
-        return eval
     
 
-    def __knn_train_and_evaluate(self):
+    def __knn_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = self.__divide_data_in_train_and_test(X, y)
 
@@ -452,18 +360,11 @@ class ExperimentLauncher:
         # mejor modelo
         knn_best_model = grid_search.best_estimator_
 
-        # evaluación en el conjunto de entrenamiento y prueba
-        train_accuracy = knn_best_model.score(X_train, y_train)
-        #print(f"Train Accuracy: {train_accuracy:.4f}")
-        test_accuracy = knn_best_model.score(X_test, y_test)
-        #print(f"Test Accuracy: {test_accuracy:.4f}")
-
-        # validación cruzada con el mejor modelo
-        cv_scores = cross_val_score(knn_best_model, X_train, y_train, cv=skf, scoring='accuracy')
-        #print(f"Cross-Validation Accuracy: {cv_scores.mean():.4f} +/- {cv_scores.std():.4f}")
-
         # predicciones en el conjunto de prueba
         y_pred = knn_best_model.predict(X_test)
+
+        # calculamos las métricas de evaluación y las añadimos a las listas
+        self.__calculate_and_add_metrics(position, knn_best_model, X_train, X_test, y_train, y_test, y_pred)
 
         # Matriz de confusión
         conf_matrix = confusion_matrix(y_test, y_pred)
@@ -475,20 +376,12 @@ class ExperimentLauncher:
         plt.show()
 
         # reporte de clasificación
-        print(classification_report(y_test, y_pred))  
-
-        # evaluación del modelos
-        eval = {
-            "train_accuracy": train_accuracy,
-            "test_accuracy": test_accuracy,
-            "cv_scores_mean": cv_scores.mean(),
-            "cv_scores_std": cv_scores.std()
-        }
+        print(classification_report(y_test, y_pred))
         
-        return grid_search, knn_best_model, eval
+        return grid_search, knn_best_model
     
 
-    def __knn_selected_features_train_and_evaluate(self, knn_grid_search, knn_best_model):
+    def __knn_selected_features_train_and_evaluate(self, position, knn_grid_search, knn_best_model):
         X, y, encoder = self.__preprocessing()
 
         # calculamos la información mutua para variables continuas con random_state
@@ -517,19 +410,11 @@ class ExperimentLauncher:
         # mejor modelo reducido
         knn_best_model_reduced = knn_grid_search.best_estimator_
 
-        # evaluación del modelo reducido
-        train_accuracy_reduced = knn_best_model_reduced.score(X_train_reduced, y_train)
-        #print(f"Train Accuracy (Reduced): {train_accuracy_reduced:.4f}")
-        test_accuracy_reduced = knn_best_model_reduced.score(X_test_reduced, y_test)
-        #print(f"Test Accuracy (Reduced): {test_accuracy_reduced:.4f}")
-
-        # validación cruzada con el modelo reducido
-        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        cv_scores_reduced = cross_val_score(knn_best_model_reduced, X_train_reduced, y_train, cv=skf, scoring='accuracy')
-        #print(f"Cross-Validation Accuracy (Reduced): {cv_scores_reduced.mean():.4f} +/- {cv_scores_reduced.std():.4f}")
-
         # predicciones en el conjunto de prueba reducido
         y_pred_reduced = knn_best_model_reduced.predict(X_test_reduced)
+
+        # calculamos las métricas de evaluación y las añadimos a las listas
+        self.__calculate_and_add_metrics(position, knn_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced)
 
         # matriz de confusión para modelo reducido
         conf_matrix = confusion_matrix(y_test, y_pred_reduced)
@@ -542,16 +427,6 @@ class ExperimentLauncher:
 
         # reporte de clasificación
         print(classification_report(y_test, y_pred_reduced))
-
-        # evaluación del modelos
-        eval = {
-            "train_accuracy": train_accuracy_reduced,
-            "test_accuracy": test_accuracy_reduced,
-            "cv_scores_mean": cv_scores_reduced.mean(),
-            "cv_scores_std": cv_scores_reduced.std()
-        }
-        
-        return eval
     
 
     def __preprocessing(self):
@@ -571,14 +446,29 @@ class ExperimentLauncher:
         return self.matches_df.copy()
     
 
-    def __show_results(self, rf_eval=None, rf_reduced_eval=None, dt_eval=None, dt_reduced_eval=None, lr_eval=None, lr_reduced_eval=None, knn_eval=None, knn_reduced_eval=None):
-        results = {
-            "RF": rf_eval, "RF_Reduced": rf_reduced_eval,
-            "DT": dt_eval, "DT_Reduced": dt_reduced_eval,
-            "LR": lr_eval, "LR_Reduced": lr_reduced_eval,
-            "KNN": knn_eval, "KNN_Reduced": knn_reduced_eval
+    def __calculate_and_add_metrics(self, position, model, X_train, X_test, y_train, y_test, y_pred):
+        self.train_accuracy[position] = model.score(X_train, y_train)
+        self.test_accuracy[position] = model.score(X_test, y_test)
+        self.precision_macro[position] = precision_score(y_test, y_pred, average='macro')
+        self.precision_weighted[position] = precision_score(y_test, y_pred, average='weighted')
+        self.recall_macro[position] = recall_score(y_test, y_pred, average='macro')
+        self.recall_weighted[position] = recall_score(y_test, y_pred, average='weighted')
+        self.f1_macro[position] = f1_score(y_test, y_pred, average='macro')
+        self.f1_weighted[position] = f1_score(y_test, y_pred, average='weighted')
+    
+
+    def __show_results(self):
+        metrics = {
+            'Train Accuracy': self.train_accuracy,
+            'Test Accuracy': self.test_accuracy,
+            'Precision Macro': self.precision_macro,
+            'Precision Weighted': self.precision_weighted,
+            'Recall Macro': self.recall_macro,
+            'Recall Weighted': self.recall_weighted,
+            'F1 Macro': self.f1_macro,
+            'F1 Weighted': self.f1_weighted
         }
-        results_df = pd.DataFrame(results).T
-        results_df.index.name = "Model"
+        models = ['Random Forest', 'Random Forest Reduced', 'Decision Tree', 'Decision Tree Reduced', 'Logistic Regression', 'Logistic Regression Reduced', 'KNN', 'KNN Reduced']
+        results_df = pd.DataFrame(metrics, index=models)
         return results_df
     
