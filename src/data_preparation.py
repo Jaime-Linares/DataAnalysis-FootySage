@@ -3,7 +3,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 
 
-
+# --- FUNCIONES ÚTILES PARA PREPARAR LOS DATOS -------------------------------------------------------------------------------------------------------------------
 def code_categorical_data_multiclass(processed_data):
     '''
     Encodes the categorical data with more than 2 classes.
@@ -17,7 +17,7 @@ def code_categorical_data_multiclass(processed_data):
     return processed_data, encoder
 
 
-def divide_data_in_train_test(data, target, test_size=0.2):
+def divide_data_in_train_test(data, target, test_size=0.2, stratify=True):
     '''
     Divides the data into training and test sets with stratification.
     params:
@@ -27,7 +27,7 @@ def divide_data_in_train_test(data, target, test_size=0.2):
     returns:
         tuple: A tuple containing the training and test sets.
     '''
-    X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=test_size, random_state=42, stratify=target)
+    X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=test_size, random_state=42, stratify=target if stratify else None)
     return X_train, X_test, y_train, y_test
 
 

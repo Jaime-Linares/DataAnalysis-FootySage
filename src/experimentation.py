@@ -26,6 +26,7 @@ class ExperimentLauncher:
         self.recall_weighted = [None] * 8
         self.f1_macro = [None] * 8
         self.f1_weighted = [None] * 8
+        self.hyperparameters = [None] * 8
 
 
     def run(self):
@@ -52,7 +53,7 @@ class ExperimentLauncher:
 
     def __random_forest_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = self.__divide_data_in_train_and_test(X, y)
+        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
 
         # definimos un pipeline para el modelo RandomForestClassifier
         rf_pipeline = Pipeline([
@@ -83,7 +84,7 @@ class ExperimentLauncher:
         y_pred = rf_best_model.predict(X_test)
 
         # calculamos las métricas de evaluación y las añadimos a las listas
-        self.__calculate_and_add_metrics(position, rf_best_model, X_train, X_test, y_train, y_test, y_pred)
+        self.__calculate_and_add_metrics(position, rf_best_model, X_train, X_test, y_train, y_test, y_pred, best_params)
 
         # matriz de confusión
         conf_matrix = confusion_matrix(y_test, y_pred)
@@ -113,7 +114,7 @@ class ExperimentLauncher:
         X_reduced = X[important_features]
 
         # dividimos los datos reducidos en entrenamiento y prueba
-        X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y, test_size=0.2)
+        X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y)
 
         # definimos un pipeline para el modelo RandomForestClassifier
         rf_pipeline = Pipeline([
@@ -144,7 +145,7 @@ class ExperimentLauncher:
         y_pred_reduced = rf_best_model_reduced.predict(X_test_reduced)
 
         # calculamos las métricas de evaluación y las añadimos a las listas
-        self.__calculate_and_add_metrics(position, rf_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced)
+        self.__calculate_and_add_metrics(position, rf_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced, best_params_reduced)
 
         # matriz de confusión
         conf_matrix = confusion_matrix(y_test, y_pred_reduced)
@@ -161,7 +162,7 @@ class ExperimentLauncher:
 
     def __decision_tree_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = self.__divide_data_in_train_and_test(X, y)
+        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
 
         # definimos un pipeline para el modelo DecisionTreeClassifier
         dt_pipeline = Pipeline([
@@ -191,7 +192,7 @@ class ExperimentLauncher:
         y_pred = dt_best_model.predict(X_test)
 
         # calculamos las métricas de evaluación y las añadimos a las listas
-        self.__calculate_and_add_metrics(position, dt_best_model, X_train, X_test, y_train, y_test, y_pred)
+        self.__calculate_and_add_metrics(position, dt_best_model, X_train, X_test, y_train, y_test, y_pred, best_params)
 
         # matriz de confusión
         conf_matrix = confusion_matrix(y_test, y_pred)
@@ -225,7 +226,7 @@ class ExperimentLauncher:
         X_reduced = X[important_features]
 
         # dividimos los datos reducidos en entrenamiento y prueba
-        X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y, test_size=0.2)
+        X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y)
 
         # definimos un pipeline para el modelo DecisionTreeClassifier
         dt_pipeline = Pipeline([
@@ -255,7 +256,7 @@ class ExperimentLauncher:
         y_pred_reduced = dt_best_model_reduced.predict(X_test_reduced)
 
         # calculamos las métricas de evaluación y las añadimos a las listas
-        self.__calculate_and_add_metrics(position, dt_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced)
+        self.__calculate_and_add_metrics(position, dt_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced, best_params_reduced)
 
         # matriz de confusión
         conf_matrix = confusion_matrix(y_test, y_pred_reduced)
@@ -272,7 +273,7 @@ class ExperimentLauncher:
 
     def __logistic_regression_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = self.__divide_data_in_train_and_test(X, y)
+        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
 
         # definimos un pipeline para el modelo LogisticRegression con StandardScaler
         lr_pipeline = Pipeline([
@@ -304,7 +305,7 @@ class ExperimentLauncher:
         y_pred = lr_best_model.predict(X_test)
 
         # calculamos las métricas de evaluación y las añadimos a las listas
-        self.__calculate_and_add_metrics(position, lr_best_model, X_train, X_test, y_train, y_test, y_pred)
+        self.__calculate_and_add_metrics(position, lr_best_model, X_train, X_test, y_train, y_test, y_pred, best_params)
 
         # matriz de confusión
         conf_matrix = confusion_matrix(y_test, y_pred)
@@ -328,7 +329,7 @@ class ExperimentLauncher:
         X_reduced = selector.fit_transform(X, y)
 
         # dividimos los datos reducidos en entrenamiento y prueba
-        X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y, test_size=0.2)
+        X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y)
 
         # definimos un pipeline para el modelo LogisticRegression con StandardScaler
         lr_pipeline = Pipeline([
@@ -360,7 +361,7 @@ class ExperimentLauncher:
         y_pred_reduced = lr_best_model_reduced.predict(X_test_reduced)
 
         # calculamos las métricas de evaluación y las añadimos a las listas
-        self.__calculate_and_add_metrics(position, lr_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced)
+        self.__calculate_and_add_metrics(position, lr_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced, best_params_reduced)
 
         # matriz de confusión para modelo reducido
         conf_matrix = confusion_matrix(y_test, y_pred_reduced)
@@ -377,7 +378,7 @@ class ExperimentLauncher:
 
     def __knn_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = self.__divide_data_in_train_and_test(X, y)
+        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
 
         # definimos un pipeline para el modelo KNeighborsClassifier con StandardScaler
         knn_pipeline = Pipeline([
@@ -408,7 +409,7 @@ class ExperimentLauncher:
         y_pred = knn_best_model.predict(X_test)
 
         # calculamos las métricas de evaluación y las añadimos a las listas
-        self.__calculate_and_add_metrics(position, knn_best_model, X_train, X_test, y_train, y_test, y_pred)
+        self.__calculate_and_add_metrics(position, knn_best_model, X_train, X_test, y_train, y_test, y_pred, best_params)
 
         # Matriz de confusión
         conf_matrix = confusion_matrix(y_test, y_pred)
@@ -442,7 +443,7 @@ class ExperimentLauncher:
         X_reduced = X[important_features]
 
         # dividimos los datos reducidos en entrenamiento y prueba
-        X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y, test_size=0.2)
+        X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y)
 
          # definimos un pipeline para el modelo KNeighborsClassifier con StandardScaler
         knn_pipeline = Pipeline([
@@ -473,7 +474,7 @@ class ExperimentLauncher:
         y_pred_reduced = knn_best_model_reduced.predict(X_test_reduced)
 
         # calculamos las métricas de evaluación y las añadimos a las listas
-        self.__calculate_and_add_metrics(position, knn_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced)
+        self.__calculate_and_add_metrics(position, knn_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced, best_params_reduced)
 
         # matriz de confusión para modelo reducido
         conf_matrix = confusion_matrix(y_test, y_pred_reduced)
@@ -489,23 +490,14 @@ class ExperimentLauncher:
     
 
     def __preprocessing(self):
-        matches_df = self.__get_matches()
+        matches_df = self.matches_df.copy()
         X = matches_df.drop(columns=["winner_team"])
         y = matches_df["winner_team"]
         y, encoder = code_categorical_data_multiclass(y)
-        return X, y, encoder
+        return X, y, encoder  
     
 
-    def __divide_data_in_train_and_test(self, X, y):
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y, test_size=0.2)
-        return X_train, X_test, y_train, y_test
-
-
-    def __get_matches(self):
-        return self.matches_df.copy()
-    
-
-    def __calculate_and_add_metrics(self, position, model, X_train, X_test, y_train, y_test, y_pred):
+    def __calculate_and_add_metrics(self, position, model, X_train, X_test, y_train, y_test, y_pred, hyperparameters):
         self.train_accuracy[position] = model.score(X_train, y_train)
         self.test_accuracy[position] = model.score(X_test, y_test)
         self.precision_macro[position] = precision_score(y_test, y_pred, average='macro')
@@ -514,6 +506,7 @@ class ExperimentLauncher:
         self.recall_weighted[position] = recall_score(y_test, y_pred, average='weighted')
         self.f1_macro[position] = f1_score(y_test, y_pred, average='macro')
         self.f1_weighted[position] = f1_score(y_test, y_pred, average='weighted')
+        self.hyperparameters[position] = hyperparameters
     
 
     def __show_results(self):
@@ -525,7 +518,8 @@ class ExperimentLauncher:
             'Recall Macro': self.recall_macro,
             'Recall Weighted': self.recall_weighted,
             'F1 Macro': self.f1_macro,
-            'F1 Weighted': self.f1_weighted
+            'F1 Weighted': self.f1_weighted,
+            'Hyperparameters chosen': self.hyperparameters
         }
         models = ['Random Forest', 'Random Forest Reduced', 'Decision Tree', 'Decision Tree Reduced', 'Logistic Regression', 'Logistic Regression Reduced', 'KNN', 'KNN Reduced']
         results_df = pd.DataFrame(metrics, index=models)
