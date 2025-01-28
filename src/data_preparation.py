@@ -1,5 +1,5 @@
 # encoding:utf-8
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
 from sklearn.model_selection import train_test_split
 
 
@@ -15,6 +15,29 @@ def code_categorical_data_multiclass(processed_data):
     encoder = LabelEncoder()
     processed_data = encoder.fit_transform(processed_data)
     return processed_data, encoder
+
+
+def scale_data_train_test(X_train, X_test, scaler):
+    '''
+    Scales the data.
+    params:
+        X_train (DataFrame): A DataFrame containing the training data.
+        X_test (DataFrame): A DataFrame containing the test data.
+        scaler (str): The scaler to use.
+    returns:
+        tuple: A tuple containing the scaled training and test data.
+    '''
+    if scaler == 'standard':
+        scaler = StandardScaler()
+        X_train = scaler.fit_transform(X_train)
+        X_test = scaler.transform(X_test)
+    elif scaler == 'minmax':
+        scaler = MinMaxScaler()
+        X_train = scaler.fit_transform(X_train)
+        X_test = scaler.transform(X_test)
+    else:
+        raise ValueError('Invalid scaler. Valid scalers are: standard, minmax')
+    return X_train, X_test
 
 
 def divide_data_in_train_test(data, target, test_size=0.2, stratify=True):

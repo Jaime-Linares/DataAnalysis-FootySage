@@ -1,4 +1,4 @@
-from src.data_preparation import code_categorical_data_multiclass, divide_data_in_train_test
+from src.data_preparation import code_categorical_data_multiclass, scale_data_train_test, divide_data_in_train_test
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
@@ -298,6 +298,7 @@ class ExperimentLauncher:
         best_params = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
         print("Best hyperparameters:", best_params)
         # mejor modelo
+        X_train, X_test = scale_data_train_test(X_train, X_test, "standard")
         lr_best_model = LogisticRegression(**best_params, random_state=42, max_iter=3000)
         lr_best_model.fit(X_train, y_train)
 
@@ -325,7 +326,7 @@ class ExperimentLauncher:
     def __logistic_regression_selected_features_train_and_evaluate(self, position, lr_best_model):
         X, y, encoder = self.__preprocessing()
 
-        selector = SelectFromModel(estimator=LogisticRegression(penalty='elasticnet', solver='saga', random_state=42, max_iter=3000, l1_ratio=0.2, C=0.1), threshold='1.6*mean')
+        selector = SelectFromModel(estimator=LogisticRegression(penalty='elasticnet', solver='saga', random_state=42, max_iter=1000, l1_ratio=0.2, C=0.1), threshold='1.6*mean')
         X_reduced = selector.fit_transform(X, y)
 
         # dividimos los datos reducidos en entrenamiento y prueba
@@ -334,7 +335,7 @@ class ExperimentLauncher:
         # definimos un pipeline para el modelo LogisticRegression con StandardScaler
         lr_pipeline = Pipeline([
             ('scaler', StandardScaler()),
-            ('classifier', LogisticRegression(random_state=42, max_iter=1000))
+            ('classifier', LogisticRegression(random_state=42, max_iter=25))
         ])
 
         # definimos el espacio de búsqueda de hiperparámetros
@@ -354,6 +355,7 @@ class ExperimentLauncher:
         best_params_reduced = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
+        X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
         lr_best_model_reduced = LogisticRegression(**best_params_reduced, random_state=42, max_iter=1000)
         lr_best_model_reduced.fit(X_train_reduced, y_train)
 
@@ -402,6 +404,7 @@ class ExperimentLauncher:
         best_params = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
         print("Best hyperparameters:", best_params)
         # mejor modelo
+        X_train, X_test = scale_data_train_test(X_train, X_test, "minmax")
         knn_best_model = KNeighborsClassifier(**best_params)
         knn_best_model.fit(X_train, y_train)
 
@@ -467,6 +470,7 @@ class ExperimentLauncher:
         best_params_reduced = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
+        X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "minmax")
         knn_best_model_reduced = KNeighborsClassifier(**best_params_reduced)
         knn_best_model_reduced.fit(X_train_reduced, y_train)
 
