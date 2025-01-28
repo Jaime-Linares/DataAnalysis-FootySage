@@ -31,21 +31,21 @@ class ExperimentLauncher:
     def run(self):
         print("Starting experiment...")
         print("Random Forest")
-        rf_grid_search, rf_best_model = self.__random_forest_train_and_evaluate(0)
+        rf_best_model = self.__random_forest_train_and_evaluate(0)
         print("Random Forest Selected Features")
-        self.__random_forest_selected_features_train_and_evaluate(1, rf_grid_search, rf_best_model)
+        self.__random_forest_selected_features_train_and_evaluate(1, rf_best_model)
         print("Decision Tree")
-        dt_grid_search, dt_best_model = self.__decision_tree_train_and_evaluate(2)
+        dt_best_model = self.__decision_tree_train_and_evaluate(2)
         print("Decision Tree Selected Features")
-        self.__decision_tree_selected_features_train_and_evaluate(3, dt_grid_search, dt_best_model)
+        self.__decision_tree_selected_features_train_and_evaluate(3, dt_best_model)
         print("Logistic Regression")
-        lr_grid_search, lr_best_model = self.__logistic_regression_train_and_evaluate(4)
+        lr_best_model = self.__logistic_regression_train_and_evaluate(4)
         print("Logistic Regression Selected Features")
-        self.__logistic_regression_selected_features_train_and_evaluate(5, lr_grid_search, lr_best_model)
+        self.__logistic_regression_selected_features_train_and_evaluate(5, lr_best_model)
         print("KNN")
-        knn_grid_search, knn_best_model = self.__knn_train_and_evaluate(6)
+        knn_best_model = self.__knn_train_and_evaluate(6)
         print("KNN Selected Features")
-        self.__knn_selected_features_train_and_evaluate(7, knn_grid_search, knn_best_model)
+        self.__knn_selected_features_train_and_evaluate(7, knn_best_model)
         print("Experiment finished.")
         return self.__show_results()
 
@@ -97,10 +97,10 @@ class ExperimentLauncher:
         # reporte de clasificación
         print(classification_report(y_test, y_pred))    
         
-        return grid_search, rf_best_model
+        return rf_best_model
     
 
-    def __random_forest_selected_features_train_and_evaluate(self, position, rf_grid_search, rf_best_model):
+    def __random_forest_selected_features_train_and_evaluate(self, position, rf_best_model):
         X, y, encoder = self.__preprocessing()
 
         # importancia de características
@@ -115,10 +115,26 @@ class ExperimentLauncher:
         # dividimos los datos reducidos en entrenamiento y prueba
         X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y, test_size=0.2)
 
-        # buscamos la mejor combinación de hiperparámetros con las características reducidas
-        rf_grid_search.fit(X_train_reduced, y_train)
+        # definimos un pipeline para el modelo RandomForestClassifier
+        rf_pipeline = Pipeline([
+            ('classifier', RandomForestClassifier(class_weight='balanced', random_state=42))
+        ])
+
+        # definimos el espacio de búsqueda de hiperparámetros
+        rf_param_grid = {
+            'classifier__n_estimators': [15, 20, 35, 40, 50],
+            'classifier__max_depth': [3, 4, 5, 6, 8],
+            'classifier__criterion': ['gini', 'entropy'],
+            'classifier__max_features': ['sqrt', 'log2', None]
+        }
+
+        # realizamos la búsqueda de hiperparámetros
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        grid_search = GridSearchCV(rf_pipeline, rf_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
+        grid_search.fit(X_train_reduced, y_train)
+
         # mejores parámetros
-        best_params_reduced = {k.replace('classifier__', ''): v for k, v in rf_grid_search.best_params_.items()}
+        best_params_reduced = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
         rf_best_model_reduced = RandomForestClassifier(**best_params_reduced, class_weight='balanced', random_state=42)
@@ -189,10 +205,10 @@ class ExperimentLauncher:
         # reporte de clasificación
         print(classification_report(y_test, y_pred)) 
         
-        return grid_search, dt_best_model
+        return dt_best_model
     
 
-    def __decision_tree_selected_features_train_and_evaluate(self, position, dt_grid_search, dt_best_model):
+    def __decision_tree_selected_features_train_and_evaluate(self, position, dt_best_model):
         X, y, encoder = self.__preprocessing()
 
         # calculamos la información mutua para variables continuas con random_state
@@ -225,11 +241,11 @@ class ExperimentLauncher:
 
         # realizamos la búsqueda de hiperparámetros
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        dt_grid_search = GridSearchCV(dt_pipeline, dt_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
-        dt_grid_search.fit(X_train_reduced, y_train)
+        grid_search = GridSearchCV(dt_pipeline, dt_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
+        grid_search.fit(X_train_reduced, y_train)
 
         # mejores parámetros
-        best_params_reduced = {k.replace('classifier__', ''): v for k, v in dt_grid_search.best_params_.items()}
+        best_params_reduced = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
         dt_best_model_reduced = DecisionTreeClassifier(**best_params_reduced, random_state=42)
@@ -302,10 +318,10 @@ class ExperimentLauncher:
         # reporte de clasificación
         print(classification_report(y_test, y_pred))
         
-        return grid_search, lr_best_model
+        return lr_best_model
     
 
-    def __logistic_regression_selected_features_train_and_evaluate(self, position, lr_grid_search, lr_best_model):
+    def __logistic_regression_selected_features_train_and_evaluate(self, position, lr_best_model):
         X, y, encoder = self.__preprocessing()
 
         selector = SelectFromModel(estimator=LogisticRegression(penalty='elasticnet', solver='saga', random_state=42, max_iter=3000, l1_ratio=0.2, C=0.1), threshold='1.6*mean')
@@ -314,11 +330,27 @@ class ExperimentLauncher:
         # dividimos los datos reducidos en entrenamiento y prueba
         X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y, test_size=0.2)
 
-        # entrenamos el modelo con las características reducidas
-        lr_grid_search.fit(X_train_reduced, y_train)
+        # definimos un pipeline para el modelo LogisticRegression con StandardScaler
+        lr_pipeline = Pipeline([
+            ('scaler', StandardScaler()),
+            ('classifier', LogisticRegression(random_state=42, max_iter=1000))
+        ])
+
+        # definimos el espacio de búsqueda de hiperparámetros
+        lr_param_grid = [
+            {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100]},
+            {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg'], 'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100]},
+            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100], 'classifier__l1_ratio': [0.1, 0.2, 0.3, 0.5, 0.7, 0.9]},
+            {'classifier__penalty': [None], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg']}
+        ]
+
+        # realizamos la búsqueda de hiperparámetros
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        grid_search = GridSearchCV(lr_pipeline, lr_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
+        grid_search.fit(X_train_reduced, y_train)
 
         # mejores parámetros
-        best_params_reduced = {k.replace('classifier__', ''): v for k, v in lr_grid_search.best_params_.items()}
+        best_params_reduced = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
         lr_best_model_reduced = LogisticRegression(**best_params_reduced, random_state=42, max_iter=1000)
@@ -390,10 +422,10 @@ class ExperimentLauncher:
         # reporte de clasificación
         print(classification_report(y_test, y_pred))
         
-        return grid_search, knn_best_model
+        return knn_best_model
     
 
-    def __knn_selected_features_train_and_evaluate(self, position, knn_grid_search, knn_best_model):
+    def __knn_selected_features_train_and_evaluate(self, position, knn_best_model):
         X, y, encoder = self.__preprocessing()
 
         # calculamos la información mutua para variables continuas con random_state
@@ -412,11 +444,26 @@ class ExperimentLauncher:
         # dividimos los datos reducidos en entrenamiento y prueba
         X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y, test_size=0.2)
 
-        # entrenamos el modelo con las características reducidas
-        knn_grid_search.fit(X_train_reduced, y_train)
+         # definimos un pipeline para el modelo KNeighborsClassifier con StandardScaler
+        knn_pipeline = Pipeline([
+            ('scaler', MinMaxScaler()),
+            ('classifier', KNeighborsClassifier())
+        ])
+
+        # definimos el espacio de búsqueda de hiperparámetros
+        knn_param_grid = {
+            'classifier__n_neighbors': [5, 7, 9, 11, 13, 15, 17, 20, 23],
+            'classifier__weights': ['uniform', 'distance'],
+            'classifier__metric': ['euclidean', 'manhattan', 'minkowski', 'chebyshev']
+        }
+
+        # realizamos la búsqueda de hiperparámetros
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        grid_search = GridSearchCV(knn_pipeline, knn_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
+        grid_search.fit(X_train_reduced, y_train)
 
         # mejores parámetros
-        best_params_reduced = {k.replace('classifier__', ''): v for k, v in knn_grid_search.best_params_.items()}
+        best_params_reduced = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
         knn_best_model_reduced = KNeighborsClassifier(**best_params_reduced)
