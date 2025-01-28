@@ -73,9 +73,11 @@ class ExperimentLauncher:
         grid_search.fit(X_train, y_train)
 
         # mejores parámetros
-        print("Best hyperparameters:", grid_search.best_params_)
+        best_params = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
+        print("Best hyperparameters:", best_params)
         # mejor modelo
-        rf_best_model = grid_search.best_estimator_
+        rf_best_model = RandomForestClassifier(**best_params, class_weight='balanced', random_state=42)
+        rf_best_model.fit(X_train, y_train)
 
         # predicciones en el conjunto de prueba
         y_pred = rf_best_model.predict(X_test)
@@ -104,9 +106,8 @@ class ExperimentLauncher:
         # importancia de características
         feature_importances = pd.DataFrame({
             'Feature': X.columns,
-            'Importance': rf_best_model.named_steps['classifier'].feature_importances_
+            'Importance': rf_best_model.feature_importances_
         }).sort_values(by='Importance', ascending=False)
-
         # filtramos la características con importancia mayor a un umbral
         important_features = feature_importances[feature_importances['Importance'] > 0.0]['Feature']
         X_reduced = X[important_features]
@@ -114,12 +115,14 @@ class ExperimentLauncher:
         # dividimos los datos reducidos en entrenamiento y prueba
         X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y, test_size=0.2)
 
-        # entrenamos el modelo con las características reducidas
+        # buscamos la mejor combinación de hiperparámetros con las características reducidas
         rf_grid_search.fit(X_train_reduced, y_train)
         # mejores parámetros
-        print("Best hyperparameters:", rf_grid_search.best_params_)
+        best_params_reduced = {k.replace('classifier__', ''): v for k, v in rf_grid_search.best_params_.items()}
+        print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
-        rf_best_model_reduced = rf_grid_search.best_estimator_
+        rf_best_model_reduced = RandomForestClassifier(**best_params_reduced, class_weight='balanced', random_state=42)
+        rf_best_model_reduced.fit(X_train_reduced, y_train)
 
         # predicciones en el conjunto de prueba
         y_pred_reduced = rf_best_model_reduced.predict(X_test_reduced)
@@ -162,9 +165,11 @@ class ExperimentLauncher:
         grid_search.fit(X_train, y_train)
 
         # mejores parámetros
-        print("Best hyperparameters:", grid_search.best_params_)
+        best_params = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
+        print("Best hyperparameters:", best_params)
         # mejor modelo
-        dt_best_model = grid_search.best_estimator_
+        dt_best_model = DecisionTreeClassifier(**best_params, random_state=42)
+        dt_best_model.fit(X_train, y_train)
 
         # predicciones en el conjunto de prueba
         y_pred = dt_best_model.predict(X_test)
@@ -223,12 +228,12 @@ class ExperimentLauncher:
         dt_grid_search = GridSearchCV(dt_pipeline, dt_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
         dt_grid_search.fit(X_train_reduced, y_train)
 
-        # entrenamos el modelo con las características reducidas
-        #dt_grid_search.fit(X_train_reduced, y_train)
         # mejores parámetros
-        print("Best hyperparameters:", dt_grid_search.best_params_)
+        best_params_reduced = {k.replace('classifier__', ''): v for k, v in dt_grid_search.best_params_.items()}
+        print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
-        dt_best_model_reduced = dt_grid_search.best_estimator_
+        dt_best_model_reduced = DecisionTreeClassifier(**best_params_reduced, random_state=42)
+        dt_best_model_reduced.fit(X_train_reduced, y_train)
 
         # predicciones en el conjunto de prueba
         y_pred_reduced = dt_best_model_reduced.predict(X_test_reduced)
@@ -256,7 +261,7 @@ class ExperimentLauncher:
         # definimos un pipeline para el modelo LogisticRegression con StandardScaler
         lr_pipeline = Pipeline([
             ('scaler', StandardScaler()),
-            ('classifier', LogisticRegression(random_state=42, max_iter=25))
+            ('classifier', LogisticRegression(random_state=42, max_iter=1000))
         ])
 
         # definimos el espacio de búsqueda de hiperparámetros
@@ -273,9 +278,11 @@ class ExperimentLauncher:
         grid_search.fit(X_train, y_train)
 
         # mejores parámetros
-        print("Best hyperparameters:", grid_search.best_params_)
+        best_params = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
+        print("Best hyperparameters:", best_params)
         # mejor modelo
-        lr_best_model = grid_search.best_estimator_
+        lr_best_model = LogisticRegression(**best_params, random_state=42, max_iter=3000)
+        lr_best_model.fit(X_train, y_train)
 
         # predicciones en el conjunto de prueba
         y_pred = lr_best_model.predict(X_test)
@@ -301,7 +308,7 @@ class ExperimentLauncher:
     def __logistic_regression_selected_features_train_and_evaluate(self, position, lr_grid_search, lr_best_model):
         X, y, encoder = self.__preprocessing()
 
-        selector = SelectFromModel(estimator=LogisticRegression(penalty='elasticnet', solver='saga', random_state=42, max_iter=1000, l1_ratio=0.2, C=0.1), threshold='1.6*mean')
+        selector = SelectFromModel(estimator=LogisticRegression(penalty='elasticnet', solver='saga', random_state=42, max_iter=3000, l1_ratio=0.2, C=0.1), threshold='1.6*mean')
         X_reduced = selector.fit_transform(X, y)
 
         # dividimos los datos reducidos en entrenamiento y prueba
@@ -309,10 +316,13 @@ class ExperimentLauncher:
 
         # entrenamos el modelo con las características reducidas
         lr_grid_search.fit(X_train_reduced, y_train)
+
         # mejores parámetros
-        print("Best hyperparameters:", lr_grid_search.best_params_)
+        best_params_reduced = {k.replace('classifier__', ''): v for k, v in lr_grid_search.best_params_.items()}
+        print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
-        lr_best_model_reduced = lr_grid_search.best_estimator_
+        lr_best_model_reduced = LogisticRegression(**best_params_reduced, random_state=42, max_iter=1000)
+        lr_best_model_reduced.fit(X_train_reduced, y_train)
 
         # predicciones en el conjunto de prueba reducido
         y_pred_reduced = lr_best_model_reduced.predict(X_test_reduced)
@@ -356,9 +366,11 @@ class ExperimentLauncher:
         grid_search.fit(X_train, y_train)
 
         # mejores parámetros
-        print("Best hyperparameters:", grid_search.best_params_)
+        best_params = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
+        print("Best hyperparameters:", best_params)
         # mejor modelo
-        knn_best_model = grid_search.best_estimator_
+        knn_best_model = KNeighborsClassifier(**best_params)
+        knn_best_model.fit(X_train, y_train)
 
         # predicciones en el conjunto de prueba
         y_pred = knn_best_model.predict(X_test)
@@ -400,15 +412,15 @@ class ExperimentLauncher:
         # dividimos los datos reducidos en entrenamiento y prueba
         X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y, test_size=0.2)
 
-        # dividimos los datos reducidos en entrenamiento y prueba
-        X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y, test_size=0.2)
-
         # entrenamos el modelo con las características reducidas
         knn_grid_search.fit(X_train_reduced, y_train)
+
         # mejores parámetros
-        print("Best hyperparameters:", knn_grid_search.best_params_)
+        best_params_reduced = {k.replace('classifier__', ''): v for k, v in knn_grid_search.best_params_.items()}
+        print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
-        knn_best_model_reduced = knn_grid_search.best_estimator_
+        knn_best_model_reduced = KNeighborsClassifier(**best_params_reduced)
+        knn_best_model_reduced.fit(X_train_reduced, y_train)
 
         # predicciones en el conjunto de prueba reducido
         y_pred_reduced = knn_best_model_reduced.predict(X_test_reduced)
