@@ -8,7 +8,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix, classification_report
 import pandas as pd
-from sklearn.feature_selection import mutual_info_regression, SelectFromModel
+from sklearn.feature_selection import mutual_info_classif, SelectFromModel
 import matplotlib.pyplot as plt
 import seaborn as sns
 from imblearn.over_sampling import SMOTE
@@ -321,12 +321,12 @@ class ExperimentLauncher:
         X, y, encoder = self.__preprocessing()
 
         # calculamos la información mutua para variables continuas con random_state
-        mi_continuous = mutual_info_regression(X, y, random_state=42)
+        mi_classification = mutual_info_classif(X, y, random_state=42)
 
         # creamos un DataFrame para mostrar los resultados junto con los nombres de las columnas
         mi_results_mutual_information = pd.DataFrame({
             'Feature': X.columns,
-            'Mutual Information': mi_continuous
+            'Mutual Information': mi_classification
         }).sort_values(by='Mutual Information', ascending=False)
 
         # filtramos las características con coeficientes mayores a un umbral
@@ -537,16 +537,16 @@ class ExperimentLauncher:
         X, y, encoder = self.__preprocessing()
 
         # calculamos la información mutua para variables continuas con random_state
-        mi_continuous = mutual_info_regression(X, y, random_state=42)
+        mi_classification = mutual_info_classif(X, y, random_state=42)
 
         # creamos un DataFrame para mostrar los resultados junto con los nombres de las columnas
         mi_results_mutual_information = pd.DataFrame({
             'Feature': X.columns,
-            'Mutual Information': mi_continuous
+            'Mutual Information': mi_classification
         }).sort_values(by='Mutual Information', ascending=False)
 
         # filtramos las características con coeficientes mayores a un umbral
-        important_features = mi_results_mutual_information[mi_results_mutual_information['Mutual Information'] > 0.03]['Feature']
+        important_features = mi_results_mutual_information[mi_results_mutual_information['Mutual Information'] > 0.04]['Feature']
         X_reduced = X[important_features]
 
         # dividimos los datos reducidos en entrenamiento y prueba
