@@ -66,10 +66,10 @@ class ExperimentLauncher:
 
         # definimos el espacio de búsqueda de hiperparámetros
         rf_param_grid = {
-            'classifier__n_estimators': [15, 20, 35, 40, 50],
-            'classifier__max_depth': [3, 4, 5, 6, 8],
+            'classifier__n_estimators': [15, 20, 40, 50, 75],
+            'classifier__max_depth': [3, 4, 5, 6],
             'classifier__criterion': ['gini', 'entropy'],
-            'classifier__max_features': ['sqrt', 'log2', None]
+            'classifier__max_features': ['sqrt', 'log2']
         }
 
         # realizamos la búsqueda de hiperparámetros
