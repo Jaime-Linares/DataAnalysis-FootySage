@@ -12,7 +12,6 @@ from sklearn.feature_selection import mutual_info_regression, SelectFromModel
 import matplotlib.pyplot as plt
 import seaborn as sns
 from imblearn.over_sampling import SMOTE
-from collections import Counter
 
 
 
@@ -34,23 +33,23 @@ class ExperimentLauncher:
     def run(self):
         print("Starting experiment...")
         print("Random Forest")
-        rf_best_model = self.__random_forest_train_and_evaluate(0)
+        self.__random_forest_train_and_evaluate(0)
         print("Random Forest Oversampling")
         self.__random_forest_oversampling_train_and_evaluate(1)
         print("Random Forest Selected Features")
-        self.__random_forest_selected_features_train_and_evaluate(2, rf_best_model)
+        self.__random_forest_selected_features_train_and_evaluate(2)
         print("Decision Tree")
-        dt_best_model = self.__decision_tree_train_and_evaluate(3)
+        self.__decision_tree_train_and_evaluate(3)
         print("Decision Tree Selected Features")
-        self.__decision_tree_selected_features_train_and_evaluate(4, dt_best_model)
+        self.__decision_tree_selected_features_train_and_evaluate(4)
         print("Logistic Regression")
-        lr_best_model = self.__logistic_regression_train_and_evaluate(5)
+        self.__logistic_regression_train_and_evaluate(5)
         print("Logistic Regression Selected Features")
-        self.__logistic_regression_selected_features_train_and_evaluate(6, lr_best_model)
+        self.__logistic_regression_selected_features_train_and_evaluate(6)
         print("KNN")
-        knn_best_model = self.__knn_train_and_evaluate(7)
+        self.__knn_train_and_evaluate(7)
         print("KNN Selected Features")
-        self.__knn_selected_features_train_and_evaluate(8, knn_best_model)
+        self.__knn_selected_features_train_and_evaluate(8)
         print("Experiment finished.")
         return self.__show_results()
 
@@ -100,9 +99,7 @@ class ExperimentLauncher:
         plt.show()
 
         # reporte de clasificación
-        print(classification_report(y_test, y_pred))    
-        
-        return rf_best_model
+        print(classification_report(y_test, y_pred))
     
 
     def __random_forest_oversampling_train_and_evaluate(self, position):
@@ -157,13 +154,17 @@ class ExperimentLauncher:
         print(classification_report(y_test, y_pred))    
     
 
-    def __random_forest_selected_features_train_and_evaluate(self, position, rf_best_model):
+    def __random_forest_selected_features_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
+        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+
+        rf_model = RandomForestClassifier(class_weight='balanced', random_state=42, criterion='entropy', max_depth=4, n_estimators=35, max_features=None)
+        rf_model.fit(X_train, y_train)
 
         # importancia de características
         feature_importances = pd.DataFrame({
             'Feature': X.columns,
-            'Importance': rf_best_model.feature_importances_
+            'Importance': rf_model.feature_importances_
         }).sort_values(by='Importance', ascending=False)
         # filtramos la características con importancia mayor a un umbral
         important_features = feature_importances[feature_importances['Importance'] > 0.0]['Feature']
@@ -260,12 +261,10 @@ class ExperimentLauncher:
         plt.show()
 
         # reporte de clasificación
-        print(classification_report(y_test, y_pred)) 
-        
-        return dt_best_model
+        print(classification_report(y_test, y_pred))
     
 
-    def __decision_tree_selected_features_train_and_evaluate(self, position, dt_best_model):
+    def __decision_tree_selected_features_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
 
         # calculamos la información mutua para variables continuas con random_state
@@ -375,11 +374,9 @@ class ExperimentLauncher:
 
         # reporte de clasificación
         print(classification_report(y_test, y_pred))
-        
-        return lr_best_model
     
 
-    def __logistic_regression_selected_features_train_and_evaluate(self, position, lr_best_model):
+    def __logistic_regression_selected_features_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
 
         selector = SelectFromModel(estimator=LogisticRegression(penalty='elasticnet', solver='saga', random_state=42, max_iter=1000, l1_ratio=0.2, C=0.1), threshold='1.6*mean')
@@ -481,11 +478,9 @@ class ExperimentLauncher:
 
         # reporte de clasificación
         print(classification_report(y_test, y_pred))
-        
-        return knn_best_model
     
 
-    def __knn_selected_features_train_and_evaluate(self, position, knn_best_model):
+    def __knn_selected_features_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
 
         # calculamos la información mutua para variables continuas con random_state
