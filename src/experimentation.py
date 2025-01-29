@@ -319,22 +319,13 @@ class ExperimentLauncher:
 
     def __decision_tree_selected_features_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
+        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y) 
 
-        # calculamos la información mutua para variables continuas con random_state
-        mi_classification = mutual_info_classif(X, y, random_state=42)
-
-        # creamos un DataFrame para mostrar los resultados junto con los nombres de las columnas
-        mi_results_mutual_information = pd.DataFrame({
-            'Feature': X.columns,
-            'Mutual Information': mi_classification
-        }).sort_values(by='Mutual Information', ascending=False)
-
-        # filtramos las características con coeficientes mayores a un umbral
-        important_features = mi_results_mutual_information[mi_results_mutual_information['Mutual Information'] > 0.025]['Feature']
-        X_reduced = X[important_features]
-
-        # dividimos los datos reducidos en entrenamiento y prueba
-        X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y)
+        # calculamos la información mutua con random_state
+        mi_classification = mutual_info_classif(X_train, y_train, random_state=42)
+        important_features = X_train.columns[mi_classification > 0.01]
+        X_train_reduced = X_train[important_features]
+        X_test_reduced = X_test[important_features]
 
         # definimos un pipeline para el modelo DecisionTreeClassifier
         dt_pipeline = Pipeline([
