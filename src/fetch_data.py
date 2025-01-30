@@ -23,7 +23,7 @@ def get_competition_id_and_season_id(competition_name, competition_gender, seaso
         raise ValueError('No such competition found. Please check the competition, season and gender name.')
     competition_id = competition['competition_id'].values[0]
     season_id = competition['season_id'].values[0]
-    return (competition_id, season_id)
+    return competition_id, season_id
 
 
 def get_matches(competition_id, season_id):

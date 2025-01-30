@@ -3,6 +3,7 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
 from sklearn.model_selection import train_test_split
 
 
+
 # --- FUNCIONES ÚTILES PARA PREPARAR LOS DATOS -------------------------------------------------------------------------------------------------------------------
 def code_categorical_data_multiclass(processed_data):
     '''
@@ -47,6 +48,7 @@ def divide_data_in_train_test(data, target, test_size=0.2, stratify=True):
         data (DataFrame): A DataFrame containing the data.
         target (DataFrame): A DataFrame containing the target.
         test_size (float): The size of the test set.
+        stratify (bool): Whether to stratify the data or not.
     returns:
         tuple: A tuple containing the training and test sets.
     '''
