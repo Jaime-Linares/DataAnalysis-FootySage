@@ -377,14 +377,14 @@ class ExperimentLauncher:
         # definimos un pipeline para el modelo LogisticRegression con StandardScaler
         lr_pipeline = Pipeline([
             ('scaler', StandardScaler()),
-            ('classifier', LogisticRegression(random_state=42, max_iter=1000))
+            ('classifier', LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced'))
         ])
 
         # definimos el espacio de búsqueda de hiperparámetros
         lr_param_grid = [
-            {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100]},
-            {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg'], 'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100]},
-            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100], 'classifier__l1_ratio': [0.1, 0.2, 0.3, 0.5, 0.7, 0.9]},
+            {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': [0.25, 0.5, 0.75, 1, 1.5]},
+            {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg'], 'classifier__C': [0.25, 0.5, 0.75, 1, 1.5]},
+            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.25, 0.5, 0.75, 1, 1.5], 'classifier__l1_ratio': [0.2, 0.3, 0.4, 0.5, 0.6]},
             {'classifier__penalty': [None], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg']}
         ]
 
