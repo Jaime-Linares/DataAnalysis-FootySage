@@ -8,7 +8,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix, classification_report
 import pandas as pd
-from sklearn.feature_selection import mutual_info_classif, SelectFromModel
+from sklearn.feature_selection import mutual_info_classif, SelectKBest
 import matplotlib.pyplot as plt
 import seaborn as sns
 from imblearn.over_sampling import SMOTE, BorderlineSMOTE
@@ -478,24 +478,24 @@ class ExperimentLauncher:
 
     def __logistic_regression_selected_features_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
+        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
 
-        selector = SelectFromModel(estimator=LogisticRegression(penalty='elasticnet', solver='saga', random_state=42, max_iter=1000, l1_ratio=0.2, C=0.1), threshold='1.6*mean')
-        X_reduced = selector.fit_transform(X, y)
-
-        # dividimos los datos reducidos en entrenamiento y prueba
-        X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y)
+        selector = SelectKBest(lambda X, y: mutual_info_classif(X, y, random_state=666), k=50)
+        #selector = SelectFromModel(estimator=LogisticRegression(penalty='elasticnet', solver='saga', random_state=42, max_iter=5000, l1_ratio=0.4, C=0.25), threshold='1.6*mean')
+        X_train_reduced = selector.fit_transform(X_train, y_train)
+        X_test_reduced = selector.transform(X_test)
 
         # definimos un pipeline para el modelo LogisticRegression con StandardScaler
         lr_pipeline = Pipeline([
             ('scaler', StandardScaler()),
-            ('classifier', LogisticRegression(random_state=42, max_iter=25))
+            ('classifier', LogisticRegression(random_state=42, max_iter=1000))
         ])
 
         # definimos el espacio de búsqueda de hiperparámetros
         lr_param_grid = [
-            {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100]},
-            {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg'], 'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100]},
-            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100], 'classifier__l1_ratio': [0.1, 0.2, 0.3, 0.5, 0.7, 0.9]},
+            {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': [0.2, 0.3, 0.5, 0.75, 1, 1.5]},
+            {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg'], 'classifier__C': [0.2, 0.3, 0.5, 0.75, 1, 1.5]},
+            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.2, 0.3, 0.5, 0.75, 1, 1.5], 'classifier__l1_ratio': [0.2, 0.3, 0.4, 0.5, 0.6]},
             {'classifier__penalty': [None], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg']}
         ]
 
