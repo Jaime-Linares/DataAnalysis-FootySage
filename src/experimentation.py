@@ -93,17 +93,8 @@ class ExperimentLauncher:
         # calculamos las métricas de evaluación y las añadimos a las listas
         self.__calculate_and_add_metrics(position, rf_best_model, X_train, X_test, y_train, y_test, y_pred, best_params)
 
-        # matriz de confusión
-        conf_matrix = confusion_matrix(y_test, y_pred)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
-        plt.xlabel('Predicted label')
-        plt.ylabel('True label')
-        plt.title('Confusion Matrix - RandomForest')
-        plt.show()
-
-        # reporte de clasificación
-        print(classification_report(y_test, y_pred))
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('RandomForest', y_test, y_pred, encoder)
     
 
     def __random_forest_oversampling_train_and_evaluate(self, position):
@@ -145,17 +136,8 @@ class ExperimentLauncher:
         # calculamos las métricas de evaluación y las añadimos a las listas
         self.__calculate_and_add_metrics(position, rf_best_model, X_train_resampled, X_test, y_train_resampled, y_test, y_pred, best_params)
 
-        # matriz de confusión
-        conf_matrix = confusion_matrix(y_test, y_pred)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
-        plt.xlabel('Predicted label')
-        plt.ylabel('True label')
-        plt.title('Confusion Matrix - RandomForest Oversampling')
-        plt.show()
-
-        # reporte de clasificación
-        print(classification_report(y_test, y_pred))    
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('RandomForest Oversampling', y_test, y_pred, encoder)  
     
 
     def __random_forest_selected_features_train_and_evaluate(self, position):
@@ -208,17 +190,8 @@ class ExperimentLauncher:
         # calculamos las métricas de evaluación y las añadimos a las listas
         self.__calculate_and_add_metrics(position, rf_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced, best_params_reduced)
 
-        # matriz de confusión
-        conf_matrix = confusion_matrix(y_test, y_pred_reduced)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
-        plt.xlabel('Predicted label')
-        plt.ylabel('True label')
-        plt.title('Confusion Matrix - RandomForest Reduced')
-        plt.show()   
-
-        # reporte de clasificación
-        print(classification_report(y_test, y_pred_reduced))
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('RandomForest Reduced', y_test, y_pred_reduced, encoder)
     
 
     def __decision_tree_train_and_evaluate(self, position):
@@ -255,17 +228,8 @@ class ExperimentLauncher:
         # calculamos las métricas de evaluación y las añadimos a las listas
         self.__calculate_and_add_metrics(position, dt_best_model, X_train, X_test, y_train, y_test, y_pred, best_params)
 
-        # matriz de confusión
-        conf_matrix = confusion_matrix(y_test, y_pred)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
-        plt.xlabel('Predicted label')
-        plt.ylabel('True label')
-        plt.title('Confusion Matrix - DecisionTree')
-        plt.show()
-
-        # reporte de clasificación
-        print(classification_report(y_test, y_pred))
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('DecisionTree', y_test, y_pred, encoder)
 
 
     def __decision_tree_oversampling_train_and_evaluate(self, position):
@@ -306,17 +270,8 @@ class ExperimentLauncher:
         # calculamos las métricas de evaluación y las añadimos a las listas
         self.__calculate_and_add_metrics(position, dt_best_model, X_train_resampled, X_test, y_train_resampled, y_test, y_pred, best_params)
 
-        # matriz de confusión
-        conf_matrix = confusion_matrix(y_test, y_pred)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
-        plt.xlabel('Predicted label')
-        plt.ylabel('True label')
-        plt.title('Confusion Matrix - DecisionTree Oversampling')
-        plt.show()
-
-        # reporte de clasificación
-        print(classification_report(y_test, y_pred))
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('DecisionTree Oversampling', y_test, y_pred, encoder)
     
 
     def __decision_tree_selected_features_train_and_evaluate(self, position):
@@ -359,17 +314,8 @@ class ExperimentLauncher:
         # calculamos las métricas de evaluación y las añadimos a las listas
         self.__calculate_and_add_metrics(position, dt_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced, best_params_reduced)
 
-        # matriz de confusión
-        conf_matrix = confusion_matrix(y_test, y_pred_reduced)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
-        plt.xlabel('Predicted label')
-        plt.ylabel('True label')
-        plt.title('Confusion Matrix - DecisionTree Reduced')
-        plt.show()   
-
-        # reporte de clasificación
-        print(classification_report(y_test, y_pred_reduced))
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('DecisionTree Reduced', y_test, y_pred_reduced, encoder)
     
 
     def __logistic_regression_train_and_evaluate(self, position):
@@ -409,17 +355,8 @@ class ExperimentLauncher:
         # calculamos las métricas de evaluación y las añadimos a las listas
         self.__calculate_and_add_metrics(position, lr_best_model, X_train, X_test, y_train, y_test, y_pred, best_params)
 
-        # matriz de confusión
-        conf_matrix = confusion_matrix(y_test, y_pred)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
-        plt.xlabel('Predicted label')
-        plt.ylabel('True label')
-        plt.title('Confusion Matrix - Logistic Regression')
-        plt.show()
-
-        # reporte de clasificación
-        print(classification_report(y_test, y_pred))
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('LogisiticRegression', y_test, y_pred, encoder)
 
 
     def __logistic_regression_oversampling_train_and_evaluate(self, position):
@@ -463,17 +400,8 @@ class ExperimentLauncher:
         # calculamos las métricas de evaluación y las añadimos a las listas
         self.__calculate_and_add_metrics(position, lr_best_model, X_train_resampled, X_test, y_train_resampled, y_test, y_pred, best_params)
 
-        # matriz de confusión
-        conf_matrix = confusion_matrix(y_test, y_pred)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
-        plt.xlabel('Predicted label')
-        plt.ylabel('True label')
-        plt.title('Confusion Matrix - Logistic Regression Oversampling')
-        plt.show()
-
-        # reporte de clasificación
-        print(classification_report(y_test, y_pred))
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('LogisiticRegression Oversampling', y_test, y_pred, encoder)
     
 
     def __logistic_regression_selected_features_train_and_evaluate(self, position):
@@ -518,17 +446,8 @@ class ExperimentLauncher:
         # calculamos las métricas de evaluación y las añadimos a las listas
         self.__calculate_and_add_metrics(position, lr_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced, best_params_reduced)
 
-        # matriz de confusión para modelo reducido
-        conf_matrix = confusion_matrix(y_test, y_pred_reduced)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
-        plt.xlabel('Predicted label')
-        plt.ylabel('True label')
-        plt.title('Confusion Matrix - Logistic Regression Reduced')
-        plt.show()   
-
-        # reporte de clasificación
-        print(classification_report(y_test, y_pred_reduced))
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('LogisiticRegression Reduced', y_test, y_pred_reduced, encoder)
     
 
     def __knn_train_and_evaluate(self, position):
@@ -567,17 +486,8 @@ class ExperimentLauncher:
         # calculamos las métricas de evaluación y las añadimos a las listas
         self.__calculate_and_add_metrics(position, knn_best_model, X_train, X_test, y_train, y_test, y_pred, best_params)
 
-        # Matriz de confusión
-        conf_matrix = confusion_matrix(y_test, y_pred)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
-        plt.xlabel('Predicted label')
-        plt.ylabel('True label')
-        plt.title('Confusion Matrix - KNN')
-        plt.show()
-
-        # reporte de clasificación
-        print(classification_report(y_test, y_pred))
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('KNN', y_test, y_pred, encoder)
     
 
     def __knn_selected_features_train_and_evaluate(self, position):
@@ -625,17 +535,8 @@ class ExperimentLauncher:
         # calculamos las métricas de evaluación y las añadimos a las listas
         self.__calculate_and_add_metrics(position, knn_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced, best_params_reduced)
 
-        # matriz de confusión para modelo reducido
-        conf_matrix = confusion_matrix(y_test, y_pred_reduced)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
-        plt.xlabel('Predicted label')
-        plt.ylabel('True label')
-        plt.title('Confusion Matrix - KNN Reduced')
-        plt.show()   
-
-        # reporte de clasificación
-        print(classification_report(y_test, y_pred_reduced))
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('KNN Reduced', y_test, y_pred_reduced, encoder)
     
 
     def __preprocessing(self):
@@ -644,6 +545,20 @@ class ExperimentLauncher:
         y = matches_df["winner_team"]
         y, encoder = code_categorical_data_multiclass(y)
         return X, y, encoder  
+    
+
+    def __confusion_matrix_and_report(self, model_name, y_test, y_pred, encoder):
+        # matriz de confusión para modelo reducido
+        conf_matrix = confusion_matrix(y_test, y_pred)
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
+        plt.xlabel('Predicted label')
+        plt.ylabel('True label')
+        plt.title(f'Confusion Matrix - {model_name}')
+        plt.show()   
+
+        # reporte de clasificación
+        print(classification_report(y_test, y_pred))
     
 
     def __calculate_and_add_metrics(self, position, model, X_train, X_test, y_train, y_test, y_pred, hyperparameters):
