@@ -469,7 +469,7 @@ class ExperimentLauncher:
         sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=encoder.classes_, yticklabels=encoder.classes_)
         plt.xlabel('Predicted label')
         plt.ylabel('True label')
-        plt.title('Confusion Matrix - Logistic Regression')
+        plt.title('Confusion Matrix - Logistic Regression Oversampling')
         plt.show()
 
         # reporte de clasificación
@@ -535,7 +535,7 @@ class ExperimentLauncher:
         X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
 
-        # definimos un pipeline para el modelo KNeighborsClassifier con StandardScaler
+        # definimos un pipeline para el modelo KNeighborsClassifier con MinMaxScaler
         knn_pipeline = Pipeline([
             ('scaler', MinMaxScaler()),
             ('classifier', KNeighborsClassifier())
@@ -581,35 +581,29 @@ class ExperimentLauncher:
     
 
     def __knn_selected_features_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()
+        X, y, encoder = self.__preprocessing()      
+        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y) 
 
-        # calculamos la información mutua para variables continuas con random_state
-        mi_classification = mutual_info_classif(X, y, random_state=42)
+        # calculamos la información mutua
+        mi_classification = mutual_info_classif(X_train, y_train, random_state=42)
+        important_features = X_train.columns[mi_classification > 0.04]
+        X_train_reduced = X_train[important_features]
+        X_test_reduced = X_test[important_features]
 
-        # creamos un DataFrame para mostrar los resultados junto con los nombres de las columnas
-        mi_results_mutual_information = pd.DataFrame({
-            'Feature': X.columns,
-            'Mutual Information': mi_classification
-        }).sort_values(by='Mutual Information', ascending=False)
-
-        # filtramos las características con coeficientes mayores a un umbral
-        important_features = mi_results_mutual_information[mi_results_mutual_information['Mutual Information'] > 0.04]['Feature']
-        X_reduced = X[important_features]
-
-        # dividimos los datos reducidos en entrenamiento y prueba
-        X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y)
-
-         # definimos un pipeline para el modelo KNeighborsClassifier con StandardScaler
+        # definimos como va a influir el peso de los vecinos en la clasificación (el inverso de la distancia)
+        def custom_weights(distances):
+            return 1 / (distances + 1e-5)
+        
+        # definimos un pipeline para el modelo KNeighborsClassifier con MinMaxScaler
         knn_pipeline = Pipeline([
             ('scaler', MinMaxScaler()),
-            ('classifier', KNeighborsClassifier())
+            ('classifier', KNeighborsClassifier(weights=custom_weights))
         ])
 
         # definimos el espacio de búsqueda de hiperparámetros
         knn_param_grid = {
-            'classifier__n_neighbors': [5, 7, 9, 11, 13, 15, 17, 20, 23],
-            'classifier__weights': ['uniform', 'distance'],
-            'classifier__metric': ['euclidean', 'manhattan', 'minkowski', 'chebyshev']
+            'classifier__n_neighbors': [5, 9, 11, 13, 15, 17, 20, 23],
+            'classifier__metric': ['euclidean', 'manhattan', 'chebyshev']
         }
 
         # realizamos la búsqueda de hiperparámetros
@@ -622,7 +616,7 @@ class ExperimentLauncher:
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
         X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "minmax")
-        knn_best_model_reduced = KNeighborsClassifier(**best_params_reduced)
+        knn_best_model_reduced = KNeighborsClassifier(**best_params_reduced, weights=custom_weights)
         knn_best_model_reduced.fit(X_train_reduced, y_train)
 
         # predicciones en el conjunto de prueba reducido
