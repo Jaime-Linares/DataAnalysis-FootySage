@@ -154,10 +154,8 @@ class ExperimentLauncher:
         }).sort_values(by='Importance', ascending=False)
         # filtramos la características con importancia mayor a un umbral
         important_features = feature_importances[feature_importances['Importance'] > 0.0]['Feature']
-        X_reduced = X[important_features]
-
-        # dividimos los datos reducidos en entrenamiento y prueba
-        X_train_reduced, X_test_reduced, y_train, y_test = divide_data_in_train_test(X_reduced, y)
+        X_train_reduced = X_train[important_features]
+        X_test_reduced = X_test[important_features]
 
         # definimos un pipeline para el modelo RandomForestClassifier
         rf_pipeline = Pipeline([
