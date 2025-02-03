@@ -19,15 +19,15 @@ class ExperimentLauncher:
 
     def __init__(self, matches_df):
         self.matches_df = matches_df
-        self.train_accuracy = [None] * 11
-        self.test_accuracy = [None] * 11
-        self.precision_macro = [None] * 11
-        self.precision_weighted = [None] * 11
-        self.recall_macro = [None] * 11
-        self.recall_weighted = [None] * 11
-        self.f1_macro = [None] * 11
-        self.f1_weighted = [None] * 11
-        self.hyperparameters = [None] * 11
+        self.train_accuracy = [None] * 12
+        self.test_accuracy = [None] * 12
+        self.precision_macro = [None] * 12
+        self.precision_weighted = [None] * 12
+        self.recall_macro = [None] * 12
+        self.recall_weighted = [None] * 12
+        self.f1_macro = [None] * 12
+        self.f1_weighted = [None] * 12
+        self.hyperparameters = [None] * 12
 
 
     def run(self):
@@ -38,22 +38,24 @@ class ExperimentLauncher:
         self.__random_forest_oversampling_train_and_evaluate(1)
         print("Random Forest Selected Features")
         self.__random_forest_selected_features_train_and_evaluate(2)
+        print("Random Forest MI")
+        self.__random_forest_mi_train_and_evaluate(3)
         print("Decision Tree")
-        self.__decision_tree_train_and_evaluate(3)
+        self.__decision_tree_train_and_evaluate(4)
         print("Decision Tree Oversampling")
-        self.__decision_tree_oversampling_train_and_evaluate(4)
+        self.__decision_tree_oversampling_train_and_evaluate(5)
         print("Decision Tree Selected Features")
-        self.__decision_tree_selected_features_train_and_evaluate(5)
+        self.__decision_tree_selected_features_train_and_evaluate(6)
         print("Logistic Regression")
-        self.__logistic_regression_train_and_evaluate(6)
+        self.__logistic_regression_train_and_evaluate(7)
         print("Logistic Regression Oversampling")
-        self.__logistic_regression_oversampling_train_and_evaluate(7)
+        self.__logistic_regression_oversampling_train_and_evaluate(8)
         print("Logistic Regression Selected Features")
-        self.__logistic_regression_selected_features_train_and_evaluate(8)
+        self.__logistic_regression_selected_features_train_and_evaluate(9)
         print("KNN")
-        self.__knn_train_and_evaluate(9)
+        self.__knn_train_and_evaluate(10)
         print("KNN Selected Features")
-        self.__knn_selected_features_train_and_evaluate(10)
+        self.__knn_selected_features_train_and_evaluate(11)
         print("Experiment finished.")
         return self.__show_results()
 
@@ -191,6 +193,57 @@ class ExperimentLauncher:
         # matriz de confusión y reporte de clasificación
         self.__confusion_matrix_and_report('RandomForest Reduced', y_test, y_pred_reduced, encoder)
     
+
+    def __random_forest_mi_train_and_evaluate(self, position):
+        X, y, encoder = self.__preprocessing()
+        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+
+        # selección de características usando Mutual Information
+        mi_scores = mutual_info_classif(X_train, y_train, random_state=42) 
+        selector = SelectKBest(score_func=lambda X, y: (mi_scores, []), k=50)  
+        X_train_reduced = selector.fit_transform(X_train, y_train)
+        X_test_reduced = selector.transform(X_test)
+
+        # definimos un pipeline para RandomForest
+        pipeline_mi_rf = Pipeline([
+            ('classifier', RandomForestClassifier(class_weight='balanced', random_state=42))
+        ])
+
+        # espacio de búsqueda de hiperparámetros
+        rf_param_grid = {
+            'classifier__n_estimators': [25, 50, 60, 75, 90, 100],
+            'classifier__max_depth': [3, 4, 5, 6],
+            'classifier__criterion': ['gini', 'entropy'],
+            'classifier__max_features': ['sqrt', 'log2', None]
+        }
+
+        # realizamos la búsqueda de hiperparámetros
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        grid_search = GridSearchCV(pipeline_mi_rf, rf_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
+        grid_search.fit(X_train_reduced, y_train)
+
+        # mejores hiperparámetros
+        best_params = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
+        print("Best hyperparameters:", best_params)
+        # entrenamos el modelo final con las mejores características seleccionadas
+        rf_best_model = RandomForestClassifier(
+            n_estimators=best_params['n_estimators'],
+            max_depth=best_params['max_depth'],
+            criterion=best_params['criterion'],
+            class_weight='balanced',
+            random_state=42
+        )
+        rf_best_model.fit(X_train_reduced, y_train)
+
+        # predicciones en el conjunto de prueba
+        y_pred = rf_best_model.predict(X_test_reduced)
+
+        # calculamos las métricas de evaluación y mostramos resultados
+        self.__calculate_and_add_metrics(position, rf_best_model, X_train_reduced, X_test_reduced, y_train, y_test, y_pred, best_params)
+
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('RandomForest MI', y_test, y_pred, encoder)
+
 
     def __decision_tree_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
@@ -583,8 +636,8 @@ class ExperimentLauncher:
             'F1 Weighted': self.f1_weighted,
             'Hyperparameters chosen': self.hyperparameters
         }
-        models = ['Random Forest', 'Random Forest Oversampling', 'Random Forest Reduced', 'Decision Tree', 'Decision Tree Oversampling', 'Decision Tree Reduced', 
-                  'Logistic Regression', 'Logistic Regression Oversampling', 'Logistic Regression Reduced', 'KNN', 'KNN Reduced']
+        models = ['Random Forest', 'Random Forest Oversampling', 'Random Forest Reduced', 'Random Forest MI', 'Decision Tree', 'Decision Tree Oversampling', 
+                  'Decision Tree Reduced', 'Logistic Regression', 'Logistic Regression Oversampling', 'Logistic Regression Reduced', 'KNN', 'KNN Reduced']
         results_df = pd.DataFrame(metrics, index=models)
         return results_df
     
