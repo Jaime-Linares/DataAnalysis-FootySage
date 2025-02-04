@@ -40,25 +40,25 @@ class ExperimentLauncher:
         print("Random Forest Selected Features")
         self.__random_forest_selected_features_train_and_evaluate(2)
         print("Random Forest MI")
-        self.__random_forest_mi_train_and_evaluate(3)
+        self.__random_forest_MI_train_and_evaluate(3)
         print("Decision Tree")
         self.__decision_tree_train_and_evaluate(4)
         print("Decision Tree Oversampling")
         self.__decision_tree_oversampling_train_and_evaluate(5)
-        print("Decision Tree Selected Features")
-        self.__decision_tree_selected_features_train_and_evaluate(6)
+        print("Decision Tree MI")
+        self.__decision_tree_MI_train_and_evaluate(6)
         print("Logistic Regression")
         self.__logistic_regression_train_and_evaluate(7)
         print("Logistic Regression Oversampling")
         self.__logistic_regression_oversampling_train_and_evaluate(8)
-        print("Logistic Regression Selected Features")
-        self.__logistic_regression_selected_features_train_and_evaluate(9)
+        print("Logistic Regression MI")
+        self.__logistic_regression_MI_train_and_evaluate(9)
         print("Logistic Regression PCA")
         self.__logistic_regression_pca_train_and_evaluate(10)
         print("KNN")
         self.__knn_train_and_evaluate(11)
         print("KNN Selected Features")
-        self.__knn_selected_features_train_and_evaluate(12)
+        self.__knn_MI_train_and_evaluate(12)
         print("Experiment finished.")
         return self.__show_results()
 
@@ -197,7 +197,7 @@ class ExperimentLauncher:
         self.__confusion_matrix_and_report('RandomForest Reduced', y_test, y_pred_reduced, encoder)
     
 
-    def __random_forest_mi_train_and_evaluate(self, position):
+    def __random_forest_MI_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
 
@@ -328,11 +328,11 @@ class ExperimentLauncher:
         self.__confusion_matrix_and_report('DecisionTree Oversampling', y_test, y_pred, encoder)
     
 
-    def __decision_tree_selected_features_train_and_evaluate(self, position):
+    def __decision_tree_MI_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y) 
 
-        # calculamos la información mutua con random_state
+        # calculamos MI
         mi_classification = mutual_info_classif(X_train, y_train, random_state=42)
         important_features = X_train.columns[mi_classification > 0.01]
         X_train_reduced = X_train[important_features]
@@ -369,7 +369,7 @@ class ExperimentLauncher:
         self.__calculate_and_add_metrics(position, dt_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced, best_params_reduced)
 
         # matriz de confusión y reporte de clasificación
-        self.__confusion_matrix_and_report('DecisionTree Reduced', y_test, y_pred_reduced, encoder)
+        self.__confusion_matrix_and_report('DecisionTree MI', y_test, y_pred_reduced, encoder)
     
 
     def __logistic_regression_train_and_evaluate(self, position):
@@ -458,7 +458,7 @@ class ExperimentLauncher:
         self.__confusion_matrix_and_report('LogisiticRegression Oversampling', y_test, y_pred, encoder)
     
 
-    def __logistic_regression_selected_features_train_and_evaluate(self, position):
+    def __logistic_regression_MI_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
 
@@ -501,7 +501,7 @@ class ExperimentLauncher:
         self.__calculate_and_add_metrics(position, lr_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced, best_params_reduced)
 
         # matriz de confusión y reporte de clasificación
-        self.__confusion_matrix_and_report('LogisiticRegression Reduced', y_test, y_pred_reduced, encoder)
+        self.__confusion_matrix_and_report('LogisiticRegression MI', y_test, y_pred_reduced, encoder)
 
 
     def __logistic_regression_pca_train_and_evaluate(self, position):
@@ -556,7 +556,7 @@ class ExperimentLauncher:
         self.__calculate_and_add_metrics(position, lr_best_model_pca, X_train_pca, X_test_pca, y_train, y_test, y_pred_pca, best_params_pca)
 
         # matriz de confusión y reporte de clasificación
-        self.__confusion_matrix_and_report('LogisticRegression with PCA', y_test, y_pred_pca, encoder)
+        self.__confusion_matrix_and_report('LogisticRegression PCA', y_test, y_pred_pca, encoder)
     
 
     def __knn_train_and_evaluate(self, position):
@@ -599,7 +599,7 @@ class ExperimentLauncher:
         self.__confusion_matrix_and_report('KNN', y_test, y_pred, encoder)
     
 
-    def __knn_selected_features_train_and_evaluate(self, position):
+    def __knn_MI_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()      
         X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y) 
 
@@ -645,7 +645,7 @@ class ExperimentLauncher:
         self.__calculate_and_add_metrics(position, knn_best_model_reduced, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced, best_params_reduced)
 
         # matriz de confusión y reporte de clasificación
-        self.__confusion_matrix_and_report('KNN Reduced', y_test, y_pred_reduced, encoder)
+        self.__confusion_matrix_and_report('KNN MI', y_test, y_pred_reduced, encoder)
     
 
     def __preprocessing(self):
@@ -695,8 +695,8 @@ class ExperimentLauncher:
             'Hyperparameters chosen': self.hyperparameters
         }
         models = ['Random Forest', 'Random Forest Oversampling', 'Random Forest Reduced', 'Random Forest MI', 'Decision Tree', 'Decision Tree Oversampling', 
-                  'Decision Tree MI', 'Logistic Regression', 'Logistic Regression Oversampling', 'Logistic Regression Reduced', 'Logistic Regression PCA',
-                  'KNN', 'KNN Reduced']
+                  'Decision Tree MI', 'Logistic Regression', 'Logistic Regression Oversampling', 'Logistic Regression MI', 'Logistic Regression PCA',
+                  'KNN', 'KNN MI']
         results_df = pd.DataFrame(metrics, index=models)
         return results_df
     
