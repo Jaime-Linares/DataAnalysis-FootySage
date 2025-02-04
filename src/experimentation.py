@@ -20,15 +20,15 @@ class ExperimentLauncher:
 
     def __init__(self, matches_df):
         self.matches_df = matches_df
-        self.train_accuracy = [None] * 13
-        self.test_accuracy = [None] * 13
-        self.precision_macro = [None] * 13
-        self.precision_weighted = [None] * 13
-        self.recall_macro = [None] * 13
-        self.recall_weighted = [None] * 13
-        self.f1_macro = [None] * 13
-        self.f1_weighted = [None] * 13
-        self.hyperparameters = [None] * 13
+        self.train_accuracy = [None] * 14
+        self.test_accuracy = [None] * 14
+        self.precision_macro = [None] * 14
+        self.precision_weighted = [None] * 14
+        self.recall_macro = [None] * 14
+        self.recall_weighted = [None] * 14
+        self.f1_macro = [None] * 14
+        self.f1_weighted = [None] * 14
+        self.hyperparameters = [None] * 14
 
 
     def run(self):
@@ -54,11 +54,13 @@ class ExperimentLauncher:
         print("Logistic Regression MI")
         self.__logistic_regression_MI_train_and_evaluate(9)
         print("Logistic Regression PCA")
-        self.__logistic_regression_pca_train_and_evaluate(10)
+        self.__logistic_regression_PCA_train_and_evaluate(10)
         print("KNN")
         self.__knn_train_and_evaluate(11)
         print("KNN Selected Features")
         self.__knn_MI_train_and_evaluate(12)
+        print("KNN PCA")
+        self.__knn_PCA_train_and_evaluate(13)
         print("Experiment finished.")
         return self.__show_results()
 
@@ -504,7 +506,7 @@ class ExperimentLauncher:
         self.__confusion_matrix_and_report('LogisiticRegression MI', y_test, y_pred_reduced, encoder)
 
 
-    def __logistic_regression_pca_train_and_evaluate(self, position):
+    def __logistic_regression_PCA_train_and_evaluate(self, position):
         X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
 
@@ -517,11 +519,6 @@ class ExperimentLauncher:
         pca = PCA(n_components=0.9, random_state=42) 
         X_train_pca = pca.fit_transform(X_train_scaled)
         X_test_pca = pca.transform(X_test_scaled)
-
-        explained_variance_ratio = pca.explained_variance_ratio_
-        print("Explained variance ratio:", explained_variance_ratio)
-        cumulative_variance_ratio = explained_variance_ratio.cumsum()
-        print("Cumulative variance ratio:", cumulative_variance_ratio)
 
         # definimos un pipeline para el modelo LogisticRegression
         lr_pipeline = Pipeline([
@@ -646,6 +643,57 @@ class ExperimentLauncher:
 
         # matriz de confusión y reporte de clasificación
         self.__confusion_matrix_and_report('KNN MI', y_test, y_pred_reduced, encoder)
+
+
+    def __knn_PCA_train_and_evaluate(self, position):
+        X, y, encoder = self.__preprocessing()      
+        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y) 
+
+        # escalado de datos antes del PCA
+        scaler = MinMaxScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+
+        # aplicación de PCA para reducir dimensionalidad
+        pca = PCA(n_components=45, random_state=42)  
+        X_train_pca = pca.fit_transform(X_train_scaled)
+        X_test_pca = pca.transform(X_test_scaled)
+
+        # definimos como va a influir el peso de los vecinos en la clasificación (el inverso de la distancia)
+        def custom_weights(distances):
+            return 1 / (distances + 1e-5)
+        
+        # definimos un pipeline para el modelo KNeighborsClassifier
+        knn_pipeline = Pipeline([
+            ('classifier', KNeighborsClassifier(weights=custom_weights))
+        ])
+
+        # definimos el espacio de búsqueda de hiperparámetros
+        knn_param_grid = {
+            'classifier__n_neighbors': [6, 9, 11, 15, 17, 20, 23, 27, 30],
+            'classifier__metric': ['euclidean', 'manhattan', 'chebyshev'],
+        }
+
+        # realizamos la búsqueda de hiperparámetros
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        grid_search = GridSearchCV(knn_pipeline, knn_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
+        grid_search.fit(X_train_pca, y_train)
+
+        # mejores parámetros
+        best_params_reduced = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
+        print("Best hyperparameters:", best_params_reduced)
+        # mejor modelo reducido
+        knn_best_model_reduced = KNeighborsClassifier(**best_params_reduced, weights=custom_weights)
+        knn_best_model_reduced.fit(X_train_pca, y_train)
+
+        # predicciones en el conjunto de prueba reducido
+        y_pred_reduced = knn_best_model_reduced.predict(X_test_pca)
+
+        # calculamos las métricas de evaluación y las añadimos a las listas
+        self.__calculate_and_add_metrics(position, knn_best_model_reduced, X_train_pca, X_test_pca, y_train, y_test, y_pred_reduced, best_params_reduced)
+
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('KNN PCA', y_test, y_pred_reduced, encoder)
     
 
     def __preprocessing(self):
@@ -696,7 +744,7 @@ class ExperimentLauncher:
         }
         models = ['Random Forest', 'Random Forest Oversampling', 'Random Forest Reduced', 'Random Forest MI', 'Decision Tree', 'Decision Tree Oversampling', 
                   'Decision Tree MI', 'Logistic Regression', 'Logistic Regression Oversampling', 'Logistic Regression MI', 'Logistic Regression PCA',
-                  'KNN', 'KNN MI']
+                  'KNN', 'KNN MI', 'KNN PCA']
         results_df = pd.DataFrame(metrics, index=models)
         return results_df
     
