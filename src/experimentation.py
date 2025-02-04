@@ -9,6 +9,7 @@ from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix, classification_report
 import pandas as pd
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
+from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import seaborn as sns
 from imblearn.over_sampling import SMOTE, BorderlineSMOTE
@@ -19,15 +20,15 @@ class ExperimentLauncher:
 
     def __init__(self, matches_df):
         self.matches_df = matches_df
-        self.train_accuracy = [None] * 12
-        self.test_accuracy = [None] * 12
-        self.precision_macro = [None] * 12
-        self.precision_weighted = [None] * 12
-        self.recall_macro = [None] * 12
-        self.recall_weighted = [None] * 12
-        self.f1_macro = [None] * 12
-        self.f1_weighted = [None] * 12
-        self.hyperparameters = [None] * 12
+        self.train_accuracy = [None] * 13
+        self.test_accuracy = [None] * 13
+        self.precision_macro = [None] * 13
+        self.precision_weighted = [None] * 13
+        self.recall_macro = [None] * 13
+        self.recall_weighted = [None] * 13
+        self.f1_macro = [None] * 13
+        self.f1_weighted = [None] * 13
+        self.hyperparameters = [None] * 13
 
 
     def run(self):
@@ -52,10 +53,12 @@ class ExperimentLauncher:
         self.__logistic_regression_oversampling_train_and_evaluate(8)
         print("Logistic Regression Selected Features")
         self.__logistic_regression_selected_features_train_and_evaluate(9)
+        print("Logistic Regression PCA")
+        self.__logistic_regression_pca_train_and_evaluate(10)
         print("KNN")
-        self.__knn_train_and_evaluate(10)
+        self.__knn_train_and_evaluate(11)
         print("KNN Selected Features")
-        self.__knn_selected_features_train_and_evaluate(11)
+        self.__knn_selected_features_train_and_evaluate(12)
         print("Experiment finished.")
         return self.__show_results()
 
@@ -499,6 +502,61 @@ class ExperimentLauncher:
 
         # matriz de confusión y reporte de clasificación
         self.__confusion_matrix_and_report('LogisiticRegression Reduced', y_test, y_pred_reduced, encoder)
+
+
+    def __logistic_regression_pca_train_and_evaluate(self, position):
+        X, y, encoder = self.__preprocessing()
+        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+
+        # escalamos los datos antes de aplicar PCA
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+
+        # aplicamos PCA para reducción de dimensionalidad
+        pca = PCA(n_components=0.9, random_state=42) 
+        X_train_pca = pca.fit_transform(X_train_scaled)
+        X_test_pca = pca.transform(X_test_scaled)
+
+        explained_variance_ratio = pca.explained_variance_ratio_
+        print("Explained variance ratio:", explained_variance_ratio)
+        cumulative_variance_ratio = explained_variance_ratio.cumsum()
+        print("Cumulative variance ratio:", cumulative_variance_ratio)
+
+        # definimos un pipeline para el modelo LogisticRegression
+        lr_pipeline = Pipeline([
+            ('classifier', LogisticRegression(random_state=42, max_iter=1000))
+        ])
+
+        # definimos el espacio de búsqueda de hiperparámetros
+        lr_param_grid = [
+            {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': [0.2, 0.3, 0.5, 0.75, 1, 1.5]},
+            {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg'], 'classifier__C': [0.2, 0.3, 0.5, 0.75, 1, 1.5]},
+            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.2, 0.3, 0.5, 0.75, 1, 1.5], 'classifier__l1_ratio': [0.2, 0.3, 0.4, 0.5, 0.6]},
+            {'classifier__penalty': [None], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg']}
+        ]
+
+        # realizamos la búsqueda de hiperparámetros
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        grid_search = GridSearchCV(lr_pipeline, lr_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
+        grid_search.fit(X_train_pca, y_train)
+
+        # recuperamos los mejores parámetros
+        best_params_pca = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
+        print("Best hyperparameters:", best_params_pca)
+
+        # entrenamos un modelo nuevo con los mejores parámetros
+        lr_best_model_pca = LogisticRegression(**best_params_pca, random_state=42, max_iter=1000)
+        lr_best_model_pca.fit(X_train_pca, y_train)
+
+        # predicciones en el conjunto de prueba
+        y_pred_pca = lr_best_model_pca.predict(X_test_pca)
+
+        # calculamos las métricas de evaluación y las añadimos a las listas
+        self.__calculate_and_add_metrics(position, lr_best_model_pca, X_train_pca, X_test_pca, y_train, y_test, y_pred_pca, best_params_pca)
+
+        # matriz de confusión y reporte de clasificación
+        self.__confusion_matrix_and_report('LogisticRegression with PCA', y_test, y_pred_pca, encoder)
     
 
     def __knn_train_and_evaluate(self, position):
@@ -637,7 +695,8 @@ class ExperimentLauncher:
             'Hyperparameters chosen': self.hyperparameters
         }
         models = ['Random Forest', 'Random Forest Oversampling', 'Random Forest Reduced', 'Random Forest MI', 'Decision Tree', 'Decision Tree Oversampling', 
-                  'Decision Tree Reduced', 'Logistic Regression', 'Logistic Regression Oversampling', 'Logistic Regression Reduced', 'KNN', 'KNN Reduced']
+                  'Decision Tree MI', 'Logistic Regression', 'Logistic Regression Oversampling', 'Logistic Regression Reduced', 'Logistic Regression PCA',
+                  'KNN', 'KNN Reduced']
         results_df = pd.DataFrame(metrics, index=models)
         return results_df
     
