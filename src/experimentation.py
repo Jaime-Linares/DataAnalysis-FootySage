@@ -392,9 +392,9 @@ class ExperimentLauncher:
 
         # definimos el espacio de búsqueda de hiperparámetros
         lr_param_grid = [
-            {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': [0.25, 0.5, 0.75, 1, 1.5]},
+            {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': [0.5, 0.75, 1, 1.5]},
             {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg'], 'classifier__C': [0.25, 0.5, 0.75, 1, 1.5]},
-            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.25, 0.5, 0.75, 1, 1.5], 'classifier__l1_ratio': [0.2, 0.3, 0.4, 0.5, 0.6]},
+            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.3, 0.5, 0.75, 1, 1.5], 'classifier__l1_ratio': [0.2, 0.3, 0.4, 0.5, 0.6]},
             {'classifier__penalty': [None], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg']}
         ]
 
@@ -429,24 +429,27 @@ class ExperimentLauncher:
         smote = BorderlineSMOTE(random_state=42)
         X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
 
+        # calcular los pesos de las instancias basados en las frecuencias de clase
+        sample_weights = compute_sample_weight(class_weight='balanced', y=y_train_resampled)
+
         # definimos un pipeline para el modelo LogisticRegression con StandardScaler
         lr_pipeline = Pipeline([
             ('scaler', StandardScaler()),
-            ('classifier', LogisticRegression(random_state=42, max_iter=1000, class_weight='balanced'))
+            ('classifier', LogisticRegression(random_state=42, max_iter=1000))
         ])
 
         # definimos el espacio de búsqueda de hiperparámetros
         lr_param_grid = [
             {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': [0.25, 0.5, 0.75, 1, 1.5]},
             {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg'], 'classifier__C': [0.25, 0.5, 0.75, 1, 1.5]},
-            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.25, 0.5, 0.75, 1, 1.5], 'classifier__l1_ratio': [0.2, 0.3, 0.4, 0.5, 0.6]},
+            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.3, 0.5, 0.75, 1, 1.5], 'classifier__l1_ratio': [0.2, 0.3, 0.4, 0.5, 0.6]},
             {'classifier__penalty': [None], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg']}
         ]
 
         # realizamos la búsqueda de hiperparámetros
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
         grid_search = GridSearchCV(lr_pipeline, lr_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
-        grid_search.fit(X_train_resampled, y_train_resampled)
+        grid_search.fit(X_train_resampled, y_train_resampled, classifier__sample_weight=sample_weights)
 
         # mejores parámetros
         best_params = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
@@ -454,7 +457,7 @@ class ExperimentLauncher:
         # mejor modelo
         X_train_resampled, X_test = scale_data_train_test(X_train_resampled, X_test, "standard")
         lr_best_model = LogisticRegression(**best_params, random_state=42, max_iter=1000)
-        lr_best_model.fit(X_train_resampled, y_train_resampled)
+        lr_best_model.fit(X_train_resampled, y_train_resampled, sample_weight=sample_weights)
 
         # predicciones en el conjunto de prueba
         y_pred = lr_best_model.predict(X_test)
