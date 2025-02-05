@@ -213,23 +213,26 @@ class ExperimentLauncher:
         X_train_reduced = selector.fit_transform(X_train, y_train)
         X_test_reduced = selector.transform(X_test)
 
+        # calcular los pesos de las instancias basados en las frecuencias de clase
+        sample_weights = compute_sample_weight(class_weight='balanced', y=y_train)
+
         # definimos un pipeline para RandomForest
         pipeline_mi_rf = Pipeline([
-            ('classifier', RandomForestClassifier(class_weight='balanced', random_state=42))
+            ('classifier', RandomForestClassifier(random_state=42))
         ])
 
         # espacio de búsqueda de hiperparámetros
         rf_param_grid = {
-            'classifier__n_estimators': [25, 50, 60, 75, 90, 100],
+            'classifier__n_estimators': [25, 30, 40, 50, 75, 90],
             'classifier__max_depth': [3, 4, 5, 6],
             'classifier__criterion': ['gini', 'entropy'],
-            'classifier__max_features': ['sqrt', 'log2', None]
+            'classifier__max_features': ['sqrt', 'log2']
         }
 
         # realizamos la búsqueda de hiperparámetros
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
         grid_search = GridSearchCV(pipeline_mi_rf, rf_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
-        grid_search.fit(X_train_reduced, y_train)
+        grid_search.fit(X_train_reduced, y_train, classifier__sample_weight=sample_weights)
 
         # mejores hiperparámetros
         best_params = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
@@ -239,10 +242,9 @@ class ExperimentLauncher:
             n_estimators=best_params['n_estimators'],
             max_depth=best_params['max_depth'],
             criterion=best_params['criterion'],
-            class_weight='balanced',
             random_state=42
         )
-        rf_best_model.fit(X_train_reduced, y_train)
+        rf_best_model.fit(X_train_reduced, y_train, sample_weight=sample_weights)
 
         # predicciones en el conjunto de prueba
         y_pred = rf_best_model.predict(X_test_reduced)
