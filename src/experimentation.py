@@ -7,12 +7,13 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix, classification_report
-import pandas as pd
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
 from sklearn.decomposition import PCA
+from imblearn.over_sampling import SMOTE, BorderlineSMOTE
+from sklearn.utils.class_weight import compute_sample_weight
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from imblearn.over_sampling import SMOTE, BorderlineSMOTE
 
 
 
@@ -112,14 +113,17 @@ class ExperimentLauncher:
         smote = SMOTE(random_state=42)
         X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
 
+        # calcular los pesos de las instancias basados en las frecuencias de clase
+        sample_weights = compute_sample_weight(class_weight='balanced', y=y_train_resampled)
+
         # definimos un pipeline para el modelo RandomForestClassifier
         rf_pipeline = Pipeline([
-            ('classifier', RandomForestClassifier(class_weight='balanced', random_state=42))
+            ('classifier', RandomForestClassifier(random_state=42))
         ])
 
         # definimos el espacio de búsqueda de hiperparámetros
         rf_param_grid = {
-            'classifier__n_estimators': [50, 100, 125, 150],
+            'classifier__n_estimators': [15, 20, 30, 40, 50, 60],
             'classifier__max_depth': [3, 4, 5, 6],
             'classifier__criterion': ['gini', 'entropy'],
             'classifier__max_features': ['sqrt', 'log2', None]
@@ -128,14 +132,14 @@ class ExperimentLauncher:
         # realizamos la búsqueda de hiperparámetros
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
         grid_search = GridSearchCV(rf_pipeline, rf_param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
-        grid_search.fit(X_train_resampled, y_train_resampled)
+        grid_search.fit(X_train_resampled, y_train_resampled, classifier__sample_weight=sample_weights)
 
         # mejores parámetros
         best_params = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
         print("Best hyperparameters:", best_params)
         # mejor modelo
-        rf_best_model = RandomForestClassifier(**best_params, class_weight='balanced', random_state=42)
-        rf_best_model.fit(X_train_resampled, y_train_resampled)
+        rf_best_model = RandomForestClassifier(**best_params, random_state=42)
+        rf_best_model.fit(X_train_resampled, y_train_resampled, sample_weight=sample_weights)
 
         # predicciones en el conjunto de prueba
         y_pred = rf_best_model.predict(X_test)
