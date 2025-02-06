@@ -614,20 +614,17 @@ class ExperimentLauncher:
         important_features = X_train.columns[mi_classification > 0.04]
         X_train_reduced = X_train[important_features]
         X_test_reduced = X_test[important_features]
-
-        # definimos como va a influir el peso de los vecinos en la clasificación (el inverso de la distancia)
-        def custom_weights(distances):
-            return 1 / (distances + 1e-5)
         
         # definimos un pipeline para el modelo KNeighborsClassifier con MinMaxScaler
         knn_pipeline = Pipeline([
             ('scaler', MinMaxScaler()),
-            ('classifier', KNeighborsClassifier(weights=custom_weights))
+            ('classifier', KNeighborsClassifier())
         ])
 
         # definimos el espacio de búsqueda de hiperparámetros
         knn_param_grid = {
             'classifier__n_neighbors': [5, 9, 11, 13, 15, 17, 20, 23],
+            'classifier__weights': ['distance'],
             'classifier__metric': ['euclidean', 'manhattan', 'chebyshev']
         }
 
@@ -641,7 +638,7 @@ class ExperimentLauncher:
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
         X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "minmax")
-        knn_best_model_reduced = KNeighborsClassifier(**best_params_reduced, weights=custom_weights)
+        knn_best_model_reduced = KNeighborsClassifier(**best_params_reduced)
         knn_best_model_reduced.fit(X_train_reduced, y_train)
 
         # predicciones en el conjunto de prueba reducido
@@ -667,19 +664,16 @@ class ExperimentLauncher:
         pca = PCA(n_components=45, random_state=42)  
         X_train_pca = pca.fit_transform(X_train_scaled)
         X_test_pca = pca.transform(X_test_scaled)
-
-        # definimos como va a influir el peso de los vecinos en la clasificación (el inverso de la distancia)
-        def custom_weights(distances):
-            return 1 / (distances + 1e-5)
         
         # definimos un pipeline para el modelo KNeighborsClassifier
         knn_pipeline = Pipeline([
-            ('classifier', KNeighborsClassifier(weights=custom_weights))
+            ('classifier', KNeighborsClassifier())
         ])
 
         # definimos el espacio de búsqueda de hiperparámetros
         knn_param_grid = {
             'classifier__n_neighbors': [6, 9, 11, 15, 17, 20, 23, 27, 30],
+            'classifier__weights': ['distance'],
             'classifier__metric': ['euclidean', 'manhattan', 'chebyshev'],
         }
 
@@ -692,7 +686,7 @@ class ExperimentLauncher:
         best_params_reduced = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
-        knn_best_model_reduced = KNeighborsClassifier(**best_params_reduced, weights=custom_weights)
+        knn_best_model_reduced = KNeighborsClassifier(**best_params_reduced)
         knn_best_model_reduced.fit(X_train_pca, y_train)
 
         # predicciones en el conjunto de prueba reducido
