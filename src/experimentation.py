@@ -577,8 +577,8 @@ class ExperimentLauncher:
 
         # definimos el espacio de búsqueda de hiperparámetros
         knn_param_grid = {
-            'classifier__n_neighbors': [5, 7, 9, 11, 13, 15, 17, 20, 23],
-            'classifier__weights': ['uniform', 'distance'],
+            'classifier__n_neighbors': [5, 7, 9, 11, 13, 15, 20, 25],
+            'classifier__weights': ['distance'],
             'classifier__metric': ['euclidean', 'manhattan', 'minkowski', 'chebyshev']
         }
 
