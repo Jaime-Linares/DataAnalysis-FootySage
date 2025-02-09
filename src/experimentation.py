@@ -435,7 +435,7 @@ class ExperimentLauncher:
         # definimos un pipeline para el modelo LogisticRegression con StandardScaler
         pipeline = Pipeline([
             ('scaler', StandardScaler()),
-            ('classifier', LogisticRegression(random_state=42, max_iter=1000))
+            ('classifier', LogisticRegression(random_state=42, max_iter=3000))
         ])
 
         # definimos el espacio de búsqueda de hiperparámetros
@@ -456,7 +456,7 @@ class ExperimentLauncher:
         print("Best hyperparameters:", best_params)
         # mejor modelo
         X_train_resampled, X_test = scale_data_train_test(X_train_resampled, X_test, "standard")
-        best_model = LogisticRegression(**best_params, random_state=42, max_iter=1000)
+        best_model = LogisticRegression(**best_params, random_state=42, max_iter=3000)
         best_model.fit(X_train_resampled, y_train_resampled, sample_weight=sample_weights)
 
         # predicciones en el conjunto de prueba
