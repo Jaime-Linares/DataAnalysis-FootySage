@@ -224,29 +224,24 @@ class ExperimentLauncher:
             ('classifier', RandomForestClassifier(random_state=42))
         ])
 
-        # espacio de búsqueda de hiperparámetros
-        param_grid = {
-            'classifier__n_estimators': [25, 30, 40, 50, 75, 90],
-            'classifier__max_depth': [3, 4, 5, 6],
+        # espacio de búsqueda de hiperparámetros aleatorios
+        param_dist = {
+            'classifier__n_estimators': stats.randint(25, 100),
+            'classifier__max_depth': stats.randint(2, 7), 
             'classifier__criterion': ['gini', 'entropy'],
             'classifier__max_features': ['sqrt', 'log2']
         }
 
-        # realizamos la búsqueda de hiperparámetros
+        # realizamos la búsqueda aleatoria de hiperparámetros
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        grid_search = GridSearchCV(pipeline, param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
-        grid_search.fit(X_train_reduced, y_train, classifier__sample_weight=sample_weights)
+        random_search = RandomizedSearchCV(pipeline, param_dist, n_iter=100, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1, random_state=42)
+        random_search.fit(X_train_reduced, y_train, classifier__sample_weight=sample_weights)
 
         # mejores hiperparámetros
-        best_params = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
+        best_params = {k.replace('classifier__', ''): v for k, v in random_search.best_params_.items()}
         print("Best hyperparameters:", best_params)
         # entrenamos el modelo final con las mejores características seleccionadas
-        best_model_mi = RandomForestClassifier(
-            n_estimators=best_params['n_estimators'],
-            max_depth=best_params['max_depth'],
-            criterion=best_params['criterion'],
-            random_state=42
-        )
+        best_model_mi = RandomForestClassifier(**best_params, random_state=42)
         best_model_mi.fit(X_train_reduced, y_train, sample_weight=sample_weights)
 
         # predicciones en el conjunto de prueba
