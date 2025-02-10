@@ -156,7 +156,8 @@ class ExperimentLauncher:
         X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
 
-        model = RandomForestClassifier(class_weight='balanced', random_state=42, criterion='entropy', max_depth=4, n_estimators=35, max_features=None)
+        # modelo base para calcular la importancia de características
+        model = RandomForestClassifier(class_weight='balanced', random_state=42, criterion='gini', max_depth=5, n_estimators=41, max_features='sqrt')
         model.fit(X_train, y_train)
 
         # importancia de características
@@ -164,7 +165,8 @@ class ExperimentLauncher:
             'Feature': X.columns,
             'Importance': model.feature_importances_
         }).sort_values(by='Importance', ascending=False)
-        # filtramos la características con importancia mayor a un umbral
+
+        # filtramos las características con importancia mayor a un umbral
         important_features = feature_importances[feature_importances['Importance'] > 0.0]['Feature']
         X_train_reduced = X_train[important_features]
         X_test_reduced = X_test[important_features]
@@ -174,21 +176,21 @@ class ExperimentLauncher:
             ('classifier', RandomForestClassifier(class_weight='balanced', random_state=42))
         ])
 
-        # definimos el espacio de búsqueda de hiperparámetros
-        param_grid = {
-            'classifier__n_estimators': [15, 20, 35, 40, 50],
-            'classifier__max_depth': [3, 4, 5, 6, 8],
+        # definimos el espacio de búsqueda de hiperparámetros con distribuciones aleatorias
+        param_dist = {
+            'classifier__n_estimators': stats.randint(10, 61),  
+            'classifier__max_depth': stats.randint(2, 7),       
             'classifier__criterion': ['gini', 'entropy'],
-            'classifier__max_features': ['sqrt', 'log2', None]
+            'classifier__max_features': ['sqrt', 'log2']
         }
 
-        # realizamos la búsqueda de hiperparámetros
+        # realizamos la búsqueda aleatoria de hiperparámetros
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        grid_search = GridSearchCV(pipeline, param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
-        grid_search.fit(X_train_reduced, y_train)
+        random_search = RandomizedSearchCV(pipeline, param_dist, n_iter=300, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1, random_state=42)
+        random_search.fit(X_train_reduced, y_train)
 
         # mejores hiperparámetros
-        best_params_reduced = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
+        best_params_reduced = {k.replace('classifier__', ''): v for k, v in random_search.best_params_.items()}
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo reducido
         best_model_reduced = RandomForestClassifier(**best_params_reduced, class_weight='balanced', random_state=42)
