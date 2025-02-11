@@ -622,20 +622,20 @@ class ExperimentLauncher:
             ('classifier', KNeighborsClassifier())
         ])
 
-        # definimos el espacio de búsqueda de hiperparámetros
-        param_grid = {
-            'classifier__n_neighbors': [5, 9, 11, 13, 15, 17, 20, 23],
+        # definimos el espacio de búsqueda aleatoria de hiperparámetros
+        param_distributions = {
+            'classifier__n_neighbors': stats.randint(5, 24),
             'classifier__weights': ['distance'],
             'classifier__metric': ['euclidean', 'manhattan', 'chebyshev']
         }
 
         # realizamos la búsqueda de hiperparámetros
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        grid_search = GridSearchCV(pipeline, param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
-        grid_search.fit(X_train_reduced, y_train)
+        random_search = RandomizedSearchCV(pipeline, param_distributions, n_iter=30, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1, random_state=42)
+        random_search.fit(X_train_reduced, y_train)
 
         # mejores hiperparámetros
-        best_params_reduced = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
+        best_params_reduced = {k.replace('classifier__', ''): v for k, v in random_search.best_params_.items()}
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo
         X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "minmax")
