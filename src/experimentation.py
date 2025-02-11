@@ -486,21 +486,21 @@ class ExperimentLauncher:
             ('classifier', LogisticRegression(random_state=42, max_iter=1000))
         ])
 
-        # definimos el espacio de búsqueda de hiperparámetros
-        param_grid = [
-            {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': [0.3, 0.5, 0.75, 1]},
-            {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg'], 'classifier__C': [0.25, 0.3, 0.5, 0.75, 1]},
-            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': [0.25, 0.3, 0.5, 0.75, 1], 'classifier__l1_ratio': [0.2, 0.3, 0.4, 0.5, 0.6]},
+        # definimos el espacio de búsqueda aleatoria de hiperparámetros
+        param_dist = [
+            {'classifier__penalty': ['l1'], 'classifier__solver': ['saga'], 'classifier__C': stats.uniform(0.29, 0.7)},
+            {'classifier__penalty': ['l2'], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg'], 'classifier__C': stats.uniform(0.25, 0.75)},
+            {'classifier__penalty': ['elasticnet'], 'classifier__solver': ['saga'], 'classifier__C': stats.uniform(0.25, 0.75), 'classifier__l1_ratio': stats.uniform(0.2, 0.4)},
             {'classifier__penalty': [None], 'classifier__solver': ['lbfgs', 'saga', 'newton-cg']}
         ]
 
-        # realizamos la búsqueda de hiperparámetros
+        # realizamos la búsqueda aleatoria de hiperparámetros
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        grid_search = GridSearchCV(pipeline, param_grid, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1)
-        grid_search.fit(X_train_reduced, y_train)
+        random_search = RandomizedSearchCV(pipeline, param_distributions=param_dist, n_iter=200, cv=skf, scoring='f1_macro', verbose=1, n_jobs=-1, random_state=42)
+        random_search.fit(X_train_reduced, y_train)
 
         # mejores hiperparámetros
-        best_params_reduced = {k.replace('classifier__', ''): v for k, v in grid_search.best_params_.items()}
+        best_params_reduced = {k.replace('classifier__', ''): v for k, v in random_search.best_params_.items()}
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo
         X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
