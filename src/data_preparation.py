@@ -14,7 +14,8 @@ def code_categorical_data_multiclass(processed_data):
         tuple: A tuple containing the processed data and the encoder.
     '''
     encoder = LabelEncoder()
-    processed_data = encoder.fit_transform(processed_data)
+    encoder.fit(["away_team", "draw", "home_team"])
+    processed_data = encoder.transform(processed_data)
     return processed_data, encoder
 
 
