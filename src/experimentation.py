@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import GridSearchCV, StratifiedKFold, RandomizedSearchCV
+from sklearn.model_selection import StratifiedKFold, RandomizedSearchCV
 import scipy.stats as stats
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix, classification_report
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
@@ -475,6 +475,7 @@ class ExperimentLauncher:
         X, y, encoder = self.__preprocessing()
         X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
 
+        # selección de características usando Mutual Information
         selector = SelectKBest(lambda X, y: mutual_info_classif(X, y, random_state=666), k=50)
         #selector = SelectFromModel(estimator=LogisticRegression(penalty='elasticnet', solver='saga', random_state=42, max_iter=5000, l1_ratio=0.4, C=0.25), threshold='1.6*mean')
         X_train_reduced = selector.fit_transform(X_train, y_train)
