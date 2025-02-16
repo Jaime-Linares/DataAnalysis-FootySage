@@ -52,7 +52,7 @@ def laliga_global_analysis(best_model_LaLiga, feature_names_reduced_LaLiga, enco
         plt.ylabel("Features", fontsize=14)
         plt.title(f"Importance of characteristics when the winner is: {class_name}", fontsize=16)
         plt.gca().invert_yaxis()
-        plt.grid(axis='x', linestyle='--', alpha=0.7)
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.show()
 
 
