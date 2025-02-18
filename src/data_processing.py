@@ -29,13 +29,13 @@ def process_all_matches(matches_df):
         match_events = get_events(match_id)
         match_events_sorted_by_index_df = match_events.sort_values(by=["index","type"])
         # convertimos toda la información del partido en métricas
-        match_metrics = _process_match(matches_df, match_events_sorted_by_index_df, home_team, away_team, match_week, winner_team)
+        match_metrics = _process_match(matches_df, match_events_sorted_by_index_df, match_id, home_team, away_team, match_week, winner_team)
         all_matches_metrics.append(match_metrics)
     
     return pd.DataFrame(all_matches_metrics)
 
 
-def _process_match(matches_df, events_df, home_team, away_team, match_week, winner_team):
+def _process_match(matches_df, events_df, match_id, home_team, away_team, match_week, winner_team):
     '''
     Process (obtain all relevant data) a match.
     params:
@@ -77,6 +77,8 @@ def _process_match(matches_df, events_df, home_team, away_team, match_week, winn
 
     # recolección de todas las métricas del partido
     metrics = {
+        # id del partido
+        "match_id": match_id,
         # estadísticas generales del partido
         ## tiros
         "total_shots_home": _num_event_type(events_df, home_team, 'Shot'),

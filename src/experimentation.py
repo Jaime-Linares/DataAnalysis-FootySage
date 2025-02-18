@@ -68,8 +68,8 @@ class ExperimentLauncher:
 
 
     def __random_forest_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+        X, y, encoder, match_ids = self.__preprocessing()
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
         # definimos un pipeline para el modelo RandomForestClassifier
         pipeline = Pipeline([
@@ -107,8 +107,8 @@ class ExperimentLauncher:
     
 
     def __random_forest_oversampling_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+        X, y, encoder, match_ids = self.__preprocessing()
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
         # aumentamos los datos (oversampling) aplicando SMOTE solo al conjunto de entrenamiento
         smote = SMOTE(random_state=42)
@@ -153,8 +153,8 @@ class ExperimentLauncher:
     
 
     def __random_forest_selected_features_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+        X, y, encoder, match_ids = self.__preprocessing()
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
         # modelo base para calcular la importancia de características
         model = RandomForestClassifier(class_weight='balanced', random_state=42, criterion='gini', max_depth=5, n_estimators=41, max_features='sqrt')
@@ -207,8 +207,8 @@ class ExperimentLauncher:
     
 
     def __random_forest_MI_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+        X, y, encoder, match_ids = self.__preprocessing()
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
         # selección de características usando Mutual Information
         mi_scores = mutual_info_classif(X_train, y_train, random_state=42) 
@@ -255,8 +255,8 @@ class ExperimentLauncher:
 
 
     def __decision_tree_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+        X, y, encoder, match_ids = self.__preprocessing()
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
         # definimos un pipeline para el modelo DecisionTreeClassifier
         pipeline = Pipeline([
@@ -295,8 +295,8 @@ class ExperimentLauncher:
 
 
     def __decision_tree_oversampling_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)  
+        X, y, encoder, match_ids = self.__preprocessing()
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)  
 
         # aumentamos los datos (oversampling) aplicando SMOTE solo al conjunto de entrenamiento
         smote = SMOTE(random_state=42)
@@ -339,8 +339,8 @@ class ExperimentLauncher:
     
 
     def __decision_tree_MI_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y) 
+        X, y, encoder, match_ids = self.__preprocessing()
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids) 
 
         # calculamos MI
         mi_classification = mutual_info_classif(X_train, y_train, random_state=42)
@@ -383,8 +383,8 @@ class ExperimentLauncher:
     
 
     def __logistic_regression_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+        X, y, encoder, match_ids = self.__preprocessing()
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
         # definimos un pipeline para el modelo LogisticRegression con StandardScaler
         pipeline = Pipeline([
@@ -424,8 +424,8 @@ class ExperimentLauncher:
 
 
     def __logistic_regression_oversampling_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+        X, y, encoder, match_ids = self.__preprocessing()
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
         # aumentamos los datos (oversampling) aplicando SMOTE solo al conjunto de entrenamiento
         smote = BorderlineSMOTE(random_state=42)
@@ -472,8 +472,8 @@ class ExperimentLauncher:
     
 
     def __logistic_regression_MI_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+        X, y, encoder, match_ids = self.__preprocessing()
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
         # selección de características usando Mutual Information
         selector = SelectKBest(lambda X, y: mutual_info_classif(X, y, random_state=666), k=50)
@@ -519,8 +519,8 @@ class ExperimentLauncher:
 
 
     def __logistic_regression_PCA_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+        X, y, encoder, match_ids = self.__preprocessing()
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
         # escalamos los datos antes de aplicar PCA
         scaler = StandardScaler()
@@ -568,8 +568,8 @@ class ExperimentLauncher:
     
 
     def __knn_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+        X, y, encoder, match_ids = self.__preprocessing()
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
         # definimos un pipeline para el modelo KNeighborsClassifier con MinMaxScaler
         pipeline = Pipeline([
@@ -608,8 +608,8 @@ class ExperimentLauncher:
     
 
     def __knn_MI_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()      
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y) 
+        X, y, encoder, match_ids = self.__preprocessing()      
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids) 
 
         # calculamos la información mutua
         mi_classification = mutual_info_classif(X_train, y_train, random_state=42)
@@ -654,8 +654,8 @@ class ExperimentLauncher:
 
 
     def __knn_PCA_train_and_evaluate(self, position):
-        X, y, encoder = self.__preprocessing()      
-        X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y) 
+        X, y, encoder, match_ids = self.__preprocessing()      
+        X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids) 
 
         # escalado de datos antes del PCA
         scaler = MinMaxScaler()
@@ -703,10 +703,11 @@ class ExperimentLauncher:
 
     def __preprocessing(self):
         matches_df = self.matches_df.copy()
-        X = matches_df.drop(columns=["winner_team"])
+        match_ids = matches_df["match_id"].values
+        X = matches_df.drop(columns=["winner_team", "match_id"])
         y = matches_df["winner_team"]
         y, encoder = code_categorical_data_multiclass(y)
-        return X, y, encoder  
+        return X, y, encoder, match_ids
     
 
     def __confusion_matrix_and_report(self, model_name, y_test, y_pred, encoder):

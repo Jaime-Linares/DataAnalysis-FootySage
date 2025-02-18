@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 # --- FUNCIONES LA LIGA ----------------------------------------------------------------------------------------------------------------------------
 def laliga_best_model(matches_in_laliga):
     matches_df = matches_in_laliga.copy()
-    X, y, encoder = _preprocessing(matches_df)
-    X_train, X_test, y_train, y_test = divide_data_in_train_test(X, y)
+    X, y, encoder, match_ids = _preprocessing(matches_df)
+    X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
     # selección de características usando Mutual Information
     selector = SelectKBest(lambda X, y: mutual_info_classif(X, y, random_state=666), k=50)
@@ -32,7 +32,7 @@ def laliga_best_model(matches_in_laliga):
     # calculamos las métricas de evaluación y mostramos los resultados
     evaluation_metrics = _show_metrics("Logistic Regression MI", best_model, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced)
 
-    return best_model, evaluation_metrics, X_train_reduced, X_test_reduced, selected_columns, encoder
+    return best_model, evaluation_metrics, X_train_reduced, X_test_reduced, selected_columns, encoder, match_ids_test
 
 
 def laliga_global_analysis(best_model_LaLiga, feature_names_reduced_LaLiga, encoder_LaLiga):
@@ -57,11 +57,13 @@ def laliga_global_analysis(best_model_LaLiga, feature_names_reduced_LaLiga, enco
 
 
 # --- FUNCIONES AUXILIARES ----------------------------------------------------------------------------------------------------------------------------
-def _preprocessing(matches_df):
-    X = matches_df.drop(columns=["winner_team"])
-    y = matches_df["winner_team"]
+def _preprocessing(matches_df_copy):
+    matches_df_copy = matches_df_copy.copy()
+    match_ids = matches_df_copy["match_id"].values
+    X = matches_df_copy.drop(columns=["winner_team", "match_id"])
+    y = matches_df_copy["winner_team"]
     y, encoder = code_categorical_data_multiclass(y)
-    return X, y, encoder
+    return X, y, encoder, match_ids
 
 
 def _show_metrics(model_name, best_model, X_train, X_test, y_train, y_test, y_pred):

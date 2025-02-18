@@ -42,7 +42,7 @@ def scale_data_train_test(X_train, X_test, scaler):
     return X_train, X_test
 
 
-def divide_data_in_train_test(data, target, test_size=0.2, stratify=True):
+def divide_data_in_train_test(data, target, match_ids, test_size=0.2, stratify=True):
     '''
     Divides the data into training and test sets with stratification.
     params:
@@ -53,8 +53,9 @@ def divide_data_in_train_test(data, target, test_size=0.2, stratify=True):
     returns:
         tuple: A tuple containing the training and test sets.
     '''
-    X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=test_size, random_state=42, stratify=target if stratify else None)
-    return X_train, X_test, y_train, y_test
+    X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = train_test_split(data, target, match_ids, random_state=42,
+                                                                                         test_size=test_size, stratify=target if stratify else None)
+    return X_train, X_test, y_train, y_test, match_ids_train, match_ids_test
 
 
 # --- FUNCIÓN PRINCIPAL PARA REDUCIR LA DIMENSIONALIDAD ----------------------------------------------------------------------------------------------------------
