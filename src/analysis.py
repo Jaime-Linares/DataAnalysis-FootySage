@@ -2,10 +2,104 @@ from src.data_preparation import code_categorical_data_multiclass, divide_data_i
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_score, recall_score, f1_score
+import shap
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+
+# --- FUNCIONES COMUNES ----------------------------------------------------------------------------------------------------------------------------
+def compute_shap_values(model, X_train, X_test, feature_names):
+    """
+    Compute SHAP values for a multiclass classification model.
+    params:
+        model (object): Trained model.
+        X_train (DataFrame): Training data.
+        X_test (DataFrame): Test data.
+        feature_names (list): List of feature names.
+    returns:
+        shap.Explanation: SHAP values computed for X_test.
+    """
+    explainer = shap.Explainer(model.predict_proba, X_train, feature_names=feature_names)
+    shap_values = explainer(X_test)
+    return shap_values
+
+
+def plot_shap_summary(shap_values, feature_names, encoder, threshold=0.005):
+    """
+    Generate SHAP summary plot for each class in a multiclass classification model.
+    params:
+        shap_values (shap.Explanation): Computed SHAP values.
+        feature_names (list): List of feature names.
+        encoder (LabelEncoder): Encoder used to transform target labels.
+        threshold (float): Importance threshold to filter features. Default is 0.005.
+    returns:
+        None : prints feature importance and plots beeswarm charts
+    """
+    for i in range(shap_values.shape[2]):
+        class_name = encoder.inverse_transform([i])[0]
+        print(f"Class {i}: {class_name}")
+
+        # calculamos la media absoluta de cada característicae identificamos las características importantes
+        shap_importance = np.abs(shap_values.values[:, :, i]).mean(axis=0)
+        important_features = np.where(shap_importance > threshold)[0]
+        unimportant_features = np.where(shap_importance <= threshold)[0]
+        print(f"Important features ({len(important_features)}):")
+        print([feature_names[idx] for idx in important_features])
+        print(f"Unimportant features ({len(unimportant_features)}):")
+        print([feature_names[idx] for idx in unimportant_features])
+
+        # si hay características importantes, creamos un gráfico beeswarm
+        if len(important_features) > 0:
+            shap.plots.beeswarm(shap_values[:, important_features, i], max_display=important_features.size)
+        else:
+            print(f"No features with an impact greater than {threshold} for class {i}.")
+
+
+def plot_shap_dependence_plots(shap_values, feature_names, X_test_original, encoder, num_features_to_plot=12, n_cols=3):
+    """
+    Generate SHAP dependence plots for each class in a multiclass classification model.
+    params:
+        shap_values (shap.Explanation): SHAP values computed for the model.
+        feature_names (list): List of feature names.
+        X_test_original (DataFrame): Test dataset with original (unscaled) feature values.
+        encoder (LabelEncoder): Encoder used to transform target labels.
+        num_features_to_plot (int, optional): Number of top features to plot per class. Default is 12.
+        n_cols (int, optional): Number of columns in the subplot grid. Default is 3.
+    returns:
+    - None (Displays SHAP dependence plots for each class)
+    """
+    # calculamos el número de filas necesarias para mostrar todas las características en el número de columnas especificado
+    n_rows = (num_features_to_plot // n_cols) + (num_features_to_plot % n_cols > 0)
+
+    for class_idx in range(shap_values.shape[2]):
+        class_name = encoder.inverse_transform([class_idx])[0]  
+        print(f"\nGraphs for class: {class_name}\n")
+
+        # seleccionamos las características más importantes para la clase actual
+        shap_importance = np.abs(shap_values.values[:, :, class_idx]).mean(axis=0)
+        top_features = np.argsort(shap_importance)[-num_features_to_plot:]
+
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 5 * n_rows))
+        axes = axes.flatten()
+
+        for i, feature_idx in enumerate(top_features):
+            feature_name = feature_names[feature_idx]
+            ax = axes[i]
+            shap.dependence_plot(
+                feature_name, 
+                shap_values.values[:, :, class_idx],  
+                X_test_original,  # usamos el conjunto de prueba original (sin escalar)
+                feature_names=feature_names, 
+                ax=ax,
+                show=False
+            )
+            ax.set_title(f"{feature_name}")
+
+        plt.suptitle(f"SHAP Dependence Plots - {class_name}", fontsize=16)
+        plt.tight_layout(rect=[0, 0, 1, 0.95])
+        plt.show()
 
 
 # --- FUNCIONES LA LIGA ----------------------------------------------------------------------------------------------------------------------------
@@ -42,7 +136,7 @@ def laliga_global_analysis(best_model_LaLiga, feature_names_reduced_LaLiga, enco
     num_features = len(feature_names_reduced_LaLiga)
 
     for idx, class_name in enumerate(class_labels):
-        print(f"Clase {idx}: {encoder_LaLiga.inverse_transform([idx])}")
+        print(f"Class {idx}: {encoder_LaLiga.inverse_transform([idx])}")
         coef_importance = coef_matrix[idx]  # coeficientes de la clase actual
         sorted_indices = np.argsort(coef_importance)[::-1]
         sorted_features = [feature_names_reduced_LaLiga[i] for i in sorted_indices]
