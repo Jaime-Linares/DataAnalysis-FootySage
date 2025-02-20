@@ -21,6 +21,11 @@ import seaborn as sns
 class ExperimentLauncher:
 
     def __init__(self, matches_df):
+        '''
+        Constructor of the class.
+        params:
+            matches_df (DataFrame): The DataFrame with the matches data.
+        '''
         self.matches_df = matches_df
         self.train_accuracy = [None] * 14
         self.test_accuracy = [None] * 14
@@ -34,6 +39,11 @@ class ExperimentLauncher:
 
 
     def run(self):
+        '''
+        Run the experiment with all the models and configurations.
+        returns:
+            dict: A dictionary with the results of the experiment.
+        '''
         print("Starting experiment...")
         print("Random Forest")
         self.__random_forest_train_and_evaluate(0)
@@ -68,6 +78,13 @@ class ExperimentLauncher:
 
 
     def __random_forest_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a RandomForestClassifier model using RandomizedSearchCV for hyperparameter tuning.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''
         X, y, encoder, match_ids = self.__preprocessing()
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
@@ -107,6 +124,13 @@ class ExperimentLauncher:
     
 
     def __random_forest_oversampling_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a RandomForestClassifier model using RandomizedSearchCV for hyperparameter tuning and oversampling.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''
         X, y, encoder, match_ids = self.__preprocessing()
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
@@ -153,6 +177,13 @@ class ExperimentLauncher:
     
 
     def __random_forest_selected_features_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a RandomForestClassifier model using RandomizedSearchCV for hyperparameter tuning and feature selection.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:    
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''
         X, y, encoder, match_ids = self.__preprocessing()
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
@@ -207,6 +238,13 @@ class ExperimentLauncher:
     
 
     def __random_forest_MI_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a RandomForestClassifier model using RandomizedSearchCV for hyperparameter tuning and feature selection with Mutual Information.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''
         X, y, encoder, match_ids = self.__preprocessing()
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
@@ -255,6 +293,13 @@ class ExperimentLauncher:
 
 
     def __decision_tree_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a DecisionTreeClassifier model using RandomizedSearchCV for hyperparameter tuning.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''
         X, y, encoder, match_ids = self.__preprocessing()
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
@@ -295,6 +340,13 @@ class ExperimentLauncher:
 
 
     def __decision_tree_oversampling_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a DecisionTreeClassifier model using RandomizedSearchCV for hyperparameter tuning and oversampling.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''
         X, y, encoder, match_ids = self.__preprocessing()
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)  
 
@@ -339,6 +391,13 @@ class ExperimentLauncher:
     
 
     def __decision_tree_MI_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a DecisionTreeClassifier model using RandomizedSearchCV for hyperparameter tuning and feature selection with Mutual Information.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''
         X, y, encoder, match_ids = self.__preprocessing()
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids) 
 
@@ -383,6 +442,13 @@ class ExperimentLauncher:
     
 
     def __logistic_regression_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a LogisticRegression model using RandomizedSearchCV for hyperparameter tuning.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''
         X, y, encoder, match_ids = self.__preprocessing()
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
@@ -424,6 +490,13 @@ class ExperimentLauncher:
 
 
     def __logistic_regression_oversampling_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a LogisticRegression model using RandomizedSearchCV for hyperparameter tuning and oversampling.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''
         X, y, encoder, match_ids = self.__preprocessing()
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
@@ -472,6 +545,13 @@ class ExperimentLauncher:
     
 
     def __logistic_regression_MI_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a LogisticRegression model using RandomizedSearchCV for hyperparameter tuning and feature selection with Mutual Information.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''
         X, y, encoder, match_ids = self.__preprocessing()
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
@@ -519,6 +599,13 @@ class ExperimentLauncher:
 
 
     def __logistic_regression_PCA_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a LogisticRegression model using RandomizedSearchCV for hyperparameter tuning and PCA for dimensionality reduction.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''
         X, y, encoder, match_ids = self.__preprocessing()
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
@@ -568,6 +655,13 @@ class ExperimentLauncher:
     
 
     def __knn_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a KNeighborsClassifier model using RandomizedSearchCV for hyperparameter tuning.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''    
         X, y, encoder, match_ids = self.__preprocessing()
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
@@ -608,6 +702,13 @@ class ExperimentLauncher:
     
 
     def __knn_MI_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a KNeighborsClassifier model using RandomizedSearchCV for hyperparameter tuning and feature selection with Mutual Information.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''
         X, y, encoder, match_ids = self.__preprocessing()      
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids) 
 
@@ -654,6 +755,13 @@ class ExperimentLauncher:
 
 
     def __knn_PCA_train_and_evaluate(self, position):
+        '''
+        Train and evaluate a KNeighborsClassifier model using RandomizedSearchCV for hyperparameter tuning and PCA for dimensionality reduction.
+        params:
+            position (str): The position for which the model is being trained.
+        returns:
+            None: This function does not return any value. It trains the model, evaluates it, and prints the best hyperparameters.
+        '''
         X, y, encoder, match_ids = self.__preprocessing()      
         X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids) 
 
@@ -702,6 +810,11 @@ class ExperimentLauncher:
     
 
     def __preprocessing(self):
+        '''
+        Preprocess the data for training and evaluation.
+        returns:
+            tuple: A tuple containing the features, target, encoder, and match_ids.
+        '''
         matches_df = self.matches_df.copy()
         match_ids = matches_df["match_id"].values
         X = matches_df.drop(columns=["winner_team", "match_id"])
@@ -711,6 +824,16 @@ class ExperimentLauncher:
     
 
     def __confusion_matrix_and_report(self, model_name, y_test, y_pred, encoder):
+        '''
+        Display the confusion matrix and classification report for the model.
+        params:
+            model_name (str): The name of the model.
+            y_test (ndarray): The true labels.
+            y_pred (ndarray): The predicted labels.
+            encoder (LabelEncoder): The encoder used to encode the target variable.
+        returns:
+            None: This function does not return any value. It displays the confusion matrix and classification report.
+        '''
         # matriz de confusión para modelo reducido
         conf_matrix = confusion_matrix(y_test, y_pred)
         plt.figure(figsize=(8, 6))
@@ -719,12 +842,25 @@ class ExperimentLauncher:
         plt.ylabel('True label')
         plt.title(f'Confusion Matrix - {model_name}')
         plt.show()   
-
         # reporte de clasificación
         print(classification_report(y_test, y_pred))
     
 
     def __calculate_and_add_metrics(self, position, model, X_train, X_test, y_train, y_test, y_pred, hyperparameters):
+        '''
+        Calculate the evaluation metrics for the model and add them to the corresponding lists.
+        params:
+            position (str): The position for which the model is being trained.
+            model: The trained model.
+            X_train (ndarray): The features of the training set.
+            X_test (ndarray): The features of the test set.
+            y_train (ndarray): The true labels of the training set.
+            y_test (ndarray): The true labels of the test set.
+            y_pred (ndarray): The predicted labels.
+            hyperparameters (dict): The hyperparameters chosen for the model.
+        returns:
+            None: This function does not return any value. It calculates the evaluation metrics and adds them to the lists.
+        '''
         self.train_accuracy[position] = model.score(X_train, y_train)
         self.test_accuracy[position] = model.score(X_test, y_test)
         self.precision_macro[position] = precision_score(y_test, y_pred, average='macro')
@@ -737,6 +873,11 @@ class ExperimentLauncher:
     
 
     def __show_results(self):
+        '''
+        Display the results of the models trained and evaluated.
+        returns:
+            DataFrame: A DataFrame containing the evaluation metrics for each model.
+        '''
         metrics = {
             'Train Accuracy': self.train_accuracy,
             'Test Accuracy': self.test_accuracy,
