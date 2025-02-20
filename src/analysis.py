@@ -18,8 +18,9 @@ def laliga_best_model(matches_in_laliga):
     selector = SelectKBest(lambda X, y: mutual_info_classif(X, y, random_state=666), k=50)
     X_train_reduced = selector.fit_transform(X_train, y_train)
     X_test_reduced = selector.transform(X_test)
+    X_test_reduced_orig = X_test_reduced.copy()
     # obtenemos los nombres de las características seleccionadas
-    selected_columns = X.columns[selector.get_support()]
+    selected_columns = X.columns[selector.get_support()].tolist()
 
     # entrenamiento del modelo (Logistic Regression, C=0.29354310869235306, penalty='l1', solver='saga')
     X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
@@ -32,7 +33,7 @@ def laliga_best_model(matches_in_laliga):
     # calculamos las métricas de evaluación y mostramos los resultados
     evaluation_metrics = _show_metrics("Logistic Regression MI", best_model, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced)
 
-    return best_model, evaluation_metrics, X_train_reduced, X_test_reduced, selected_columns, encoder, match_ids_test
+    return best_model, evaluation_metrics, X_train_reduced, X_test_reduced, X_test_reduced_orig, selected_columns, encoder, match_ids_test
 
 
 def laliga_global_analysis(best_model_LaLiga, feature_names_reduced_LaLiga, encoder_LaLiga):
@@ -41,6 +42,7 @@ def laliga_global_analysis(best_model_LaLiga, feature_names_reduced_LaLiga, enco
     num_features = len(feature_names_reduced_LaLiga)
 
     for idx, class_name in enumerate(class_labels):
+        print(f"Clase {idx}: {encoder_LaLiga.inverse_transform([idx])}")
         coef_importance = coef_matrix[idx]  # coeficientes de la clase actual
         sorted_indices = np.argsort(coef_importance)[::-1]
         sorted_features = [feature_names_reduced_LaLiga[i] for i in sorted_indices]
