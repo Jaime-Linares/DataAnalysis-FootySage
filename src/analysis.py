@@ -35,7 +35,7 @@ def plot_shap_summary(shap_values, feature_names, encoder, threshold=0.005):
         encoder (LabelEncoder): Encoder used to transform target labels.
         threshold (float): Importance threshold to filter features. Default is 0.005.
     returns:
-        None : prints feature importance and plots beeswarm charts
+        None : Prints feature importance and plots beeswarm charts
     '''
     for i in range(shap_values.shape[2]):
         class_name = encoder.inverse_transform([i])[0]
@@ -68,7 +68,7 @@ def plot_shap_dependence_plots(shap_values, feature_names, X_test_original, enco
         num_features_to_plot (int, optional): Number of top features to plot per class. Default is 12.
         n_cols (int, optional): Number of columns in the subplot grid. Default is 3.
     returns:
-    - None (Displays SHAP dependence plots for each class)
+        None: Displays SHAP dependence plots for each class
     '''
     # calculamos el número de filas necesarias para mostrar todas las características en el número de columnas especificado
     n_rows = (num_features_to_plot // n_cols) + (num_features_to_plot % n_cols > 0)
@@ -144,7 +144,7 @@ def laliga_best_model(matches_in_laliga):
     return best_model, evaluation_metrics, X_train_reduced, X_test_reduced, X_test_reduced_orig, selected_columns, encoder, match_ids_test
 
 
-def analyze_laliga_global(best_model_LaLiga, feature_names_reduced_LaLiga, encoder_LaLiga):
+def laliga_global_analysis(best_model_LaLiga, feature_names_reduced_LaLiga, encoder_LaLiga):
     '''
     Perform a global analysis of LaLiga using the provided best model, reduced features, and encoder.
     params:
