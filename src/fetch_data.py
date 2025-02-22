@@ -54,3 +54,20 @@ def get_events(match_id):
         raise ValueError('No such events found. Please check the match_id.')
     return events
 
+
+def get_match_info(competition_id, season_id, match_id):
+    '''
+    Fetch the match info for a specific match.
+    params:
+        competition_id (int): The competition_id.
+        season_id (int): The season_id.
+        match_id (int): The match_id.
+    returns:
+        DataFrame: A DataFrame containing the match info.
+    '''
+    matches_competition = sb.matches(competition_id=competition_id, season_id=season_id)
+    match_info = matches_competition[matches_competition['match_id'] == match_id]
+    if match_info.shape[0] == 0:
+        raise ValueError('No such match info found. Please check the competition_id, season_id and match_id.')
+    return match_info
+

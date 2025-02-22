@@ -1,3 +1,4 @@
+from src.fetch_data import get_competition_id_and_season_id, get_match_info
 from src.data_preparation import code_categorical_data_multiclass, divide_data_in_train_test, scale_data_train_test
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
 from sklearn.linear_model import LogisticRegression
@@ -100,6 +101,35 @@ def plot_shap_dependence_plots(shap_values, feature_names, X_test_original, enco
         plt.suptitle(f"SHAP Dependence Plots - {class_name}", fontsize=16)
         plt.tight_layout(rect=[0, 0, 1, 0.95])
         plt.show()
+
+
+def filter_dfs_by_team(X_test, X_test_orig, match_ids_test, team_name, competition_name, season_name, competition_gender):
+    '''
+    Filter the test set by a specific team.
+    params:
+        X_test (ndarray): Test feature set.
+        X_test_orig (ndarray): Original test feature set before scaling.
+        match_ids_test (ndarray): Array of match IDs for the test set.
+        team_name (str): Name of the team to filter by.
+        competition (str): Name of the competition.
+        season (str): Name of the season
+    returns:
+        X_test_team (DataFrame): Test feature set filtered by the team.
+        X_test_orig_team (DataFrame): Original test feature set filtered by the
+    '''
+    competition_id, season_id = get_competition_id_and_season_id(competition_name, competition_gender, season_name)
+    team_match_ids = []
+    for match_id in match_ids_test:
+        match_info = get_match_info(competition_id, season_id, match_id)
+        home_team = match_info['home_team'].values[0]
+        away_team = match_info['away_team'].values[0]
+        if team_name in [home_team, away_team]:
+            team_match_ids.append(match_id)
+    # creamos una máscara booleana y la aplicamos a los arrays
+    mask = np.isin(match_ids_test, list(team_match_ids))
+    X_test_team = X_test[mask]
+    X_test_orig_team = X_test_orig[mask]
+    return X_test_team, X_test_orig_team
 
 
 # --- FUNCIONES LA LIGA ----------------------------------------------------------------------------------------------------------------------------
