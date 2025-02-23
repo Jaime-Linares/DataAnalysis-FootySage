@@ -7,6 +7,7 @@ import shap
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import IPython.display as display
 
 
 
@@ -111,11 +112,13 @@ def filter_dfs_by_team(X_test, X_test_orig, match_ids_test, team_name, competiti
         X_test_orig (ndarray): Original test feature set before scaling.
         match_ids_test (ndarray): Array of match IDs for the test set.
         team_name (str): Name of the team to filter by.
-        competition (str): Name of the competition.
-        season (str): Name of the season
+        competition_name (str): Name of the competition.
+        season_name (str): Name of the season
+        competition_gender (str): The gender category of the competition (e.g., 'male', 'female').
     returns:
-        X_test_team (DataFrame): Test feature set filtered by the team.
-        X_test_orig_team (DataFrame): Original test feature set filtered by the
+        X_test_team (ndarray): Test feature set filtered by the team.
+        X_test_orig_team (ndarray): Original test feature set filtered by the team.
+        team_match_ids (list): List of match IDs for the team.
     '''
     competition_id, season_id = get_competition_id_and_season_id(competition_name, competition_gender, season_name)
     team_match_ids = []
@@ -129,7 +132,66 @@ def filter_dfs_by_team(X_test, X_test_orig, match_ids_test, team_name, competiti
     mask = np.isin(match_ids_test, list(team_match_ids))
     X_test_team = X_test[mask]
     X_test_orig_team = X_test_orig[mask]
-    return X_test_team, X_test_orig_team
+    return X_test_team, X_test_orig_team, team_match_ids
+
+
+def force_plot_shap_team_matches(model, X_train, X_test_team, feature_names, match_ids_test_team, encoder, team_name, competition_name, season_name, competition_gender):
+    '''
+    Generate SHAP force plots for matches of a specific team.
+    params:
+        model (object): Trained model.
+        X_train (ndarray): Training data.
+        X_test_team (ndarray): Test data for the team.
+        feature_names (list): List of feature names.
+        match_ids_test_team (list): List of match IDs for the team.
+        encoder (LabelEncoder): Encoder used to transform target labels.
+        team_name (str): Name of the team.
+        competition_name (str): Name of the competition.
+        season_name (str): Name of the season.
+        competition_gender (str): The gender category of the competition (e.g., 'male', 'female').
+    returns:
+        None: Displays SHAP force plots for the team's matches.
+    '''
+    competition_id, season_id = get_competition_id_and_season_id(competition_name, competition_gender, season_name)
+    explainer = shap.Explainer(model.predict_proba, X_train, feature_names=feature_names)
+    shap_values_team = explainer(X_test_team)
+    print(f"**Team analysis for {team_name} in {competition_name} {season_name} ({competition_gender})**")
+
+    for i in range(X_test_team.shape[0]):
+        match_id = match_ids_test_team[i]
+        match_info = get_match_info(competition_id, season_id, match_id)
+
+        home_team = match_info['home_team'].values[0]
+        home_score = match_info['home_score'].values[0]
+        away_team = match_info['away_team'].values[0]
+        away_score = match_info['away_score'].values[0]
+
+        predicted_probs = model.predict_proba(X_test_team[i].reshape(1, -1))
+        predicted_class_idx = np.argmax(predicted_probs, axis=1)[0]
+        predicted_class_name = encoder.inverse_transform([predicted_class_idx])[0]
+        print(f"📊 **Match analysis with id: {match_id}**")
+        print(f"🏟️ {home_team} 🆚 {away_team}")
+        print(f"📌 Real result: {home_score}-{away_score}")
+        print(f"🤖 Prediction of the winning team of the model: {predicted_class_name}")
+        print(f"🤖 Probabilities for each class: {predicted_probs}")
+
+        for class_idx in range(3):
+            class_name = encoder.inverse_transform([class_idx])[0]
+            print(f"SHAP force plot for class: {class_name}")
+            shap_exp = shap.Explanation(
+                values=shap_values_team.values[i, :, class_idx], 
+                base_values=shap_values_team.base_values[i, class_idx],
+                data=X_test_team[i],
+                feature_names=feature_names
+            )
+            shap_html = shap.force_plot(
+                shap_exp.base_values,
+                shap_exp.values,
+                shap_exp.data,
+                feature_names=shap_exp.feature_names,
+                matplotlib=False
+            )
+            display.display(shap_html)
 
 
 # --- FUNCIONES LA LIGA ----------------------------------------------------------------------------------------------------------------------------
