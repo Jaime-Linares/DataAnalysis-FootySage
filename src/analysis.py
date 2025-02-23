@@ -104,7 +104,7 @@ def plot_shap_dependence_plots(shap_values, feature_names, X_test_original, enco
         plt.show()
 
 
-def filter_dfs_by_team(X_test, X_test_orig, match_ids_test, team_name, competition_name, season_name, competition_gender):
+def filter_dfs_by_team(X_test, match_ids_test, team_name, competition_name, season_name, competition_gender):
     '''
     Filter the test set by a specific team.
     params:
@@ -117,7 +117,6 @@ def filter_dfs_by_team(X_test, X_test_orig, match_ids_test, team_name, competiti
         competition_gender (str): The gender category of the competition (e.g., 'male', 'female').
     returns:
         X_test_team (ndarray): Test feature set filtered by the team.
-        X_test_orig_team (ndarray): Original test feature set filtered by the team.
         team_match_ids (list): List of match IDs for the team.
     '''
     competition_id, season_id = get_competition_id_and_season_id(competition_name, competition_gender, season_name)
@@ -131,8 +130,7 @@ def filter_dfs_by_team(X_test, X_test_orig, match_ids_test, team_name, competiti
     # creamos una máscara booleana y la aplicamos a los arrays
     mask = np.isin(match_ids_test, list(team_match_ids))
     X_test_team = X_test[mask]
-    X_test_orig_team = X_test_orig[mask]
-    return X_test_team, X_test_orig_team, team_match_ids
+    return X_test_team, team_match_ids
 
 
 def force_plot_shap_team_matches(model, X_train, X_test_team, feature_names, match_ids_test_team, encoder, team_name, competition_name, season_name, competition_gender):
