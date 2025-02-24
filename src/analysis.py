@@ -7,7 +7,6 @@ import shap
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import IPython.display as display
 
 
 
@@ -104,7 +103,7 @@ def plot_shap_dependence_plots(shap_values, feature_names, X_test_original, enco
         plt.show()
 
 
-def filter_dfs_by_team(X_test, match_ids_test, team_name, competition_name, season_name, competition_gender):
+def filter_dfs_by_team(X_test, X_test_orig, match_ids_test, team_name, competition_name, season_name, competition_gender):
     '''
     Filter the test set by a specific team.
     params:
@@ -117,6 +116,7 @@ def filter_dfs_by_team(X_test, match_ids_test, team_name, competition_name, seas
         competition_gender (str): The gender category of the competition (e.g., 'male', 'female').
     returns:
         X_test_team (ndarray): Test feature set filtered by the team.
+        X_test_orig_team (ndarray): Original test feature set filtered by the team.
         team_match_ids (list): List of match IDs for the team.
     '''
     competition_id, season_id = get_competition_id_and_season_id(competition_name, competition_gender, season_name)
@@ -130,16 +130,18 @@ def filter_dfs_by_team(X_test, match_ids_test, team_name, competition_name, seas
     # creamos una máscara booleana y la aplicamos a los arrays
     mask = np.isin(match_ids_test, list(team_match_ids))
     X_test_team = X_test[mask]
-    return X_test_team, team_match_ids
+    X_test_orig_team = X_test_orig[mask]
+    return X_test_team, X_test_orig_team, team_match_ids
 
 
-def force_plot_shap_team_matches(model, X_train, X_test_team, feature_names, match_ids_test_team, encoder, team_name, competition_name, season_name, competition_gender):
+def force_plot_shap_team_matches(model, X_train, X_test_team, X_test_orig_team, feature_names, match_ids_test_team, encoder, team_name, competition_name, season_name, competition_gender):
     '''
     Generate SHAP force plots for matches of a specific team.
     params:
         model (object): Trained model.
         X_train (ndarray): Training data.
         X_test_team (ndarray): Test data for the team.
+        X_test_orig_team (ndarray): Original test feature set before scaling for the team.
         feature_names (list): List of feature names.
         match_ids_test_team (list): List of match IDs for the team.
         encoder (LabelEncoder): Encoder used to transform target labels.
@@ -156,40 +158,63 @@ def force_plot_shap_team_matches(model, X_train, X_test_team, feature_names, mat
     print(f"**Team analysis for {team_name} in {competition_name} {season_name} ({competition_gender})**")
 
     for i in range(X_test_team.shape[0]):
+        # mostramos cierta información sobre el partido
         match_id = match_ids_test_team[i]
         match_info = get_match_info(competition_id, season_id, match_id)
-
         home_team = match_info['home_team'].values[0]
         home_score = match_info['home_score'].values[0]
         away_team = match_info['away_team'].values[0]
         away_score = match_info['away_score'].values[0]
-
         predicted_probs = model.predict_proba(X_test_team[i].reshape(1, -1))
         predicted_class_idx = np.argmax(predicted_probs, axis=1)[0]
         predicted_class_name = encoder.inverse_transform([predicted_class_idx])[0]
-        print(f"📊 **Match analysis with id: {match_id}**")
+        print(f"📊 Match analysis with id: {match_id}")
         print(f"🏟️ {home_team} 🆚 {away_team}")
         print(f"📌 Real result: {home_score}-{away_score}")
         print(f"🤖 Prediction of the winning team of the model: {predicted_class_name}")
         print(f"🤖 Probabilities for each class: {predicted_probs}")
 
-        for class_idx in range(3):
-            class_name = encoder.inverse_transform([class_idx])[0]
-            print(f"SHAP force plot for class: {class_name}")
+        # seleccionamos las características importantes que se van a mostrar en el gráfico de fuerza SHAP
+        # para mostrarlas en un tabla y así poder analizarlas mejor
+        features_force_plots = {}  
+        for class_idx in range(predicted_probs.shape[1]):
             shap_exp = shap.Explanation(
                 values=shap_values_team.values[i, :, class_idx], 
                 base_values=shap_values_team.base_values[i, class_idx],
                 data=X_test_team[i],
                 feature_names=feature_names
             )
-            shap_html = shap.force_plot(
+            for j in range(len(feature_names)):
+                if abs(shap_exp.values[j]) > 0.005:  
+                    features_force_plots[feature_names[j]] = X_test_orig_team[i][j]
+        selected_features_df = pd.DataFrame(list(features_force_plots.items()), columns=["Feature", "Actual Value"])
+        print("🔎 Key Features Displayed in Force Plots: ")
+        fig, ax = plt.subplots(figsize=(12, 5))
+        ax.axis('tight')
+        ax.axis('off')
+        ax.table(cellText=selected_features_df.values, colLabels=selected_features_df.columns, cellLoc='center', loc='center')
+        plt.show()
+
+        # mostramos el gráfico de fuerza SHAP para cada clase
+        for class_idx in range(predicted_probs.shape[1]):
+            class_name = encoder.inverse_transform([class_idx])[0]
+            shap_exp = shap.Explanation(
+                values=shap_values_team.values[i, :, class_idx], 
+                base_values=shap_values_team.base_values[i, class_idx],
+                data=X_test_team[i],
+                feature_names=feature_names
+            )
+            shap.force_plot(
                 shap_exp.base_values,
                 shap_exp.values,
                 shap_exp.data,
                 feature_names=shap_exp.feature_names,
-                matplotlib=False
+                matplotlib=True,
+                text_rotation=80,
+                show=False
             )
-            display.display(shap_html)
+            plt.title(f"SHAP Force Plot for class: {class_name}", fontsize=15, pad=90)
+            plt.show()
 
 
 # --- FUNCIONES LA LIGA ----------------------------------------------------------------------------------------------------------------------------
