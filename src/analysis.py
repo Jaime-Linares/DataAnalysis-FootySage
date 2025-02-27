@@ -175,8 +175,8 @@ def force_plot_shap_team_matches(model, X_train, X_test_team, X_test_orig_team, 
         print(f"🤖 Probabilities for each class: {predicted_probs}")
 
         # seleccionamos las características importantes que se van a mostrar en el gráfico de fuerza SHAP
-        # para mostrarlas en un tabla y así poder analizarlas mejor
-        features_force_plots = {}  
+        # para mostrarlas en un tabla (ordenadas según la suma del valor absoluto de los SHAP values)
+        features_force_plots = {}
         for class_idx in range(predicted_probs.shape[1]):
             shap_exp = shap.Explanation(
                 values=shap_values_team.values[i, :, class_idx], 
@@ -185,15 +185,32 @@ def force_plot_shap_team_matches(model, X_train, X_test_team, X_test_orig_team, 
                 feature_names=feature_names
             )
             for j in range(len(feature_names)):
-                if abs(shap_exp.values[j]) > 0.005:  
-                    features_force_plots[feature_names[j]] = X_test_orig_team[i][j]
-        selected_features_df = pd.DataFrame(list(features_force_plots.items()), columns=["Feature", "Actual Value"])
-        selected_features_df = selected_features_df.sort_values(by="Actual Value", ascending=False)
-        print("🔎 Key Features Displayed in Force Plots: ")
-        fig, ax = plt.subplots(figsize=(12, 5))
+                if abs(shap_exp.values[j]) > 0.007:  
+                    if feature_names[j] not in features_force_plots:
+                        features_force_plots[feature_names[j]] = {"Feature": feature_names[j], "Actual Value": X_test_orig_team[i][j], "SHAP Value - Home": 0, "SHAP Value - Away": 0, "SHAP Value - Draw": 0}
+                    if class_idx == 0:
+                        features_force_plots[feature_names[j]]["SHAP Value - Away"] = round(shap_exp.values[j], 4)
+                    elif class_idx == 1:
+                        features_force_plots[feature_names[j]]["SHAP Value - Draw"] = round(shap_exp.values[j], 4)
+                    elif class_idx == 2:
+                        features_force_plots[feature_names[j]]["SHAP Value - Home"] = round(shap_exp.values[j], 4)
+        selected_features_df = pd.DataFrame.from_dict(features_force_plots, orient="index")
+        selected_features_df["Total SHAP Importance"] = (abs(selected_features_df["SHAP Value - Home"]) + abs(selected_features_df["SHAP Value - Away"]) + abs(selected_features_df["SHAP Value - Draw"]))
+        selected_features_df = selected_features_df.sort_values(by="Total SHAP Importance", ascending=False).drop(columns=["Total SHAP Importance"])
+        print("🔎 Key Features Displayed in Force Plots (ordered by total SHAP importance):")
+        fig, ax = plt.subplots(figsize=(20, 8))
         ax.axis('tight')
         ax.axis('off')
-        ax.table(cellText=selected_features_df.values, colLabels=selected_features_df.columns, cellLoc='center', loc='center')
+        table = ax.table(
+            cellText=selected_features_df.values, 
+            colLabels=selected_features_df.columns, 
+            cellLoc='center', 
+            loc='center',
+            colWidths=[0.35] + [0.15] + [0.10] * (len(selected_features_df.columns) - 1)
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(13)
+        table.scale(1.5, 1.5)
         plt.show()
 
         # mostramos el gráfico de fuerza SHAP para cada clase
