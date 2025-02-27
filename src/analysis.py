@@ -188,6 +188,7 @@ def force_plot_shap_team_matches(model, X_train, X_test_team, X_test_orig_team, 
                 if abs(shap_exp.values[j]) > 0.005:  
                     features_force_plots[feature_names[j]] = X_test_orig_team[i][j]
         selected_features_df = pd.DataFrame(list(features_force_plots.items()), columns=["Feature", "Actual Value"])
+        selected_features_df = selected_features_df.sort_values(by="Actual Value", ascending=False)
         print("🔎 Key Features Displayed in Force Plots: ")
         fig, ax = plt.subplots(figsize=(12, 5))
         ax.axis('tight')
@@ -276,7 +277,11 @@ def laliga_global_analysis(best_model_LaLiga, feature_names_reduced_LaLiga, enco
     for idx, class_name in enumerate(class_labels):
         print(f"Class {idx}: {encoder_LaLiga.inverse_transform([idx])}")
         coef_importance = coef_matrix[idx]
-        sorted_indices = np.argsort(coef_importance)[::-1]
+        nonzero_indices = np.where(coef_importance != 0)[0]
+        if len(nonzero_indices) == 0:
+            print(f"No significant features for class {class_name}")
+            continue
+        sorted_indices = nonzero_indices[np.argsort(coef_importance[nonzero_indices])[::-1]]
         sorted_features = [feature_names_reduced_LaLiga[i] for i in sorted_indices]
         sorted_importance = coef_importance[sorted_indices]
 
