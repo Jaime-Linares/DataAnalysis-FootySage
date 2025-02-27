@@ -278,6 +278,11 @@ def laliga_global_analysis(best_model_LaLiga, feature_names_reduced_LaLiga, enco
         print(f"Class {idx}: {encoder_LaLiga.inverse_transform([idx])}")
         coef_importance = coef_matrix[idx]
         nonzero_indices = np.where(coef_importance != 0)[0]
+        zero_indices = np.where(coef_importance == 0)[0]
+        zero_importance_features = [feature_names_reduced_LaLiga[i] for i in zero_indices]
+        if len(zero_importance_features) > 0:
+            print(f"Features with zero importance for class {class_name}:")
+            print(zero_importance_features)
         if len(nonzero_indices) == 0:
             print(f"No significant features for class {class_name}")
             continue
