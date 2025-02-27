@@ -11,6 +11,47 @@ import matplotlib.pyplot as plt
 
 
 # --- FUNCIONES COMUNES ----------------------------------------------------------------------------------------------------------------------------
+def logistic_regression_global_analysis(best_model_competition, feature_names_reduced_competition, encoder_competition):
+    '''
+    Perform a global analysis of the competition using the provided best model, reduced features, and encoder.
+    params:
+        best_model_competition (LogisticRegression): The best trained model for competition.
+        feature_names_reduced_competition (list): List of reduced feature names.
+        encoder_competition (LabelEncoder): Label encoder for competition classes.
+    returns:
+        None: This function does not return any value. It generates bar charts showing the importance of features for each class.
+    '''
+    coef_matrix = best_model_competition.coef_  # matriz de coeficientes (n_clases * n_features)
+    class_labels = encoder_competition.classes_
+    num_features = len(feature_names_reduced_competition)
+
+    for idx, class_name in enumerate(class_labels):
+        print(f"Class {idx}: {encoder_competition.inverse_transform([idx])}")
+        coef_importance = coef_matrix[idx]
+        nonzero_indices = np.where(coef_importance != 0)[0]
+        zero_indices = np.where(coef_importance == 0)[0]
+        zero_importance_features = [feature_names_reduced_competition[i] for i in zero_indices]
+        if len(zero_importance_features) > 0:
+            print(f"Features with zero importance for class {class_name}:")
+            print(zero_importance_features)
+        if len(nonzero_indices) == 0:
+            print(f"No significant features for class {class_name}")
+            continue
+        sorted_indices = nonzero_indices[np.argsort(coef_importance[nonzero_indices])[::-1]]
+        sorted_features = [feature_names_reduced_competition[i] for i in sorted_indices]
+        sorted_importance = coef_importance[sorted_indices]
+
+        # creamos gráfico para la clase
+        plt.figure(figsize=(15, max(8, num_features * 0.3)))
+        plt.barh(sorted_features, sorted_importance, color='darkorange')
+        plt.xlabel("Coefficient value", fontsize=14)
+        plt.ylabel("Features", fontsize=14)
+        plt.title(f"Importance of characteristics when the winner is: {class_name}", fontsize=16)
+        plt.gca().invert_yaxis()
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.show()
+
+
 def compute_shap_values(model, X_train, X_test, feature_names):
     '''
     Compute SHAP values for a multiclass classification model.
