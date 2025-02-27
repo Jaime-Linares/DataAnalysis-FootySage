@@ -318,45 +318,46 @@ def laliga_best_model(matches_in_laliga):
     return best_model, evaluation_metrics, X_train_reduced, X_test_reduced, X_test_reduced_orig, selected_columns, encoder, match_ids_test
 
 
-def laliga_global_analysis(best_model_LaLiga, feature_names_reduced_LaLiga, encoder_LaLiga):
+# --- FUNCIONES PREMIER LEAGUE ---------------------------------------------------------------------------------------------------------------------
+def premierleague_best_model(matches_in_PL):
     '''
-    Perform a global analysis of LaLiga using the provided best model, reduced features, and encoder.
+    Train and evaluate the best model (chosen during experimentation) for Premier League matches.
     params:
-        best_model_LaLiga (LogisticRegression): The best trained model for LaLiga.
-        feature_names_reduced_LaLiga (list): List of reduced feature names.
-        encoder_LaLiga (LabelEncoder): Label encoder for LaLiga classes.
+        matches_in_laliga (DataFrame): DataFrame containing match data for Premier League.
     returns:
-        None: This function does not return any value. It generates bar charts showing the importance of features for each class.
+        best_model (LogisticRegression): Trained Logistic Regression model.
+        evaluation_metrics (DataFrame): DataFrame containing evaluation metrics.
+        X_train_reduced (ndarray): Reduced training feature set.
+        X_test_reduced (ndarray): Reduced test feature set.
+        X_test_reduced_orig (ndarray): Original reduced test feature set before scaling.
+        selected_columns (list): List of selected feature names.
+        encoder (LabelEncoder): Encoder used to transform target labels.
+        match_ids_test (ndarray): Array of match IDs for the test set.
     '''
-    coef_matrix = best_model_LaLiga.coef_  # matriz de coeficientes (n_clases * n_features)
-    class_labels = encoder_LaLiga.classes_
-    num_features = len(feature_names_reduced_LaLiga)
+    matches_df = matches_in_PL.copy()
+    X, y, encoder, match_ids = _preprocessing(matches_df)
+    X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
-    for idx, class_name in enumerate(class_labels):
-        print(f"Class {idx}: {encoder_LaLiga.inverse_transform([idx])}")
-        coef_importance = coef_matrix[idx]
-        nonzero_indices = np.where(coef_importance != 0)[0]
-        zero_indices = np.where(coef_importance == 0)[0]
-        zero_importance_features = [feature_names_reduced_LaLiga[i] for i in zero_indices]
-        if len(zero_importance_features) > 0:
-            print(f"Features with zero importance for class {class_name}:")
-            print(zero_importance_features)
-        if len(nonzero_indices) == 0:
-            print(f"No significant features for class {class_name}")
-            continue
-        sorted_indices = nonzero_indices[np.argsort(coef_importance[nonzero_indices])[::-1]]
-        sorted_features = [feature_names_reduced_LaLiga[i] for i in sorted_indices]
-        sorted_importance = coef_importance[sorted_indices]
+    # selección de características usando Mutual Information
+    selector = SelectKBest(lambda X, y: mutual_info_classif(X, y, random_state=666), k=50)
+    X_train_reduced = selector.fit_transform(X_train, y_train)
+    X_test_reduced = selector.transform(X_test)
+    X_test_reduced_orig = X_test_reduced.copy()
+    # obtenemos los nombres de las características seleccionadas
+    selected_columns = X.columns[selector.get_support()].tolist()
 
-        # creamos gráfico para la clase
-        plt.figure(figsize=(15, max(8, num_features * 0.3)))
-        plt.barh(sorted_features, sorted_importance, color='darkorange')
-        plt.xlabel("Coefficient value", fontsize=14)
-        plt.ylabel("Features", fontsize=14)
-        plt.title(f"Importance of characteristics when the winner is: {class_name}", fontsize=16)
-        plt.gca().invert_yaxis()
-        plt.grid(axis='y', linestyle='--', alpha=0.7)
-        plt.show()
+    # entrenamiento del modelo (Logistic Regression, C=0.6261372210153997, l1_ratio=0.5193180715867101, penalty='elasticnet', solver='saga')
+    X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
+    best_model = LogisticRegression(random_state=42, max_iter=1000, C=0.6261372210153997, l1_ratio=0.5193180715867101, penalty='elasticnet', solver='saga')
+    best_model.fit(X_train_reduced, y_train)
+
+    # predicciones en el conjunto de prueba reducido
+    y_pred_reduced = best_model.predict(X_test_reduced)
+
+    # calculamos las métricas de evaluación y mostramos los resultados
+    evaluation_metrics = _show_metrics("Logistic Regression MI", best_model, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced)
+
+    return best_model, evaluation_metrics, X_train_reduced, X_test_reduced, X_test_reduced_orig, selected_columns, encoder, match_ids_test
 
 
 # --- FUNCIONES AUXILIARES ----------------------------------------------------------------------------------------------------------------------------
