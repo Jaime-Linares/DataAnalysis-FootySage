@@ -360,6 +360,48 @@ def premierleague_best_model(matches_in_PL):
     return best_model, evaluation_metrics, X_train_reduced, X_test_reduced, X_test_reduced_orig, selected_columns, encoder, match_ids_test
 
 
+# --- FUNCIONES SERIE A ----------------------------------------------------------------------------------------------------------------------------
+def serieA_best_model(matches_in_SerieA):
+    '''
+    Train and evaluate the best model (chosen during experimentation) for Serie A matches.
+    params:
+        matches_in_laliga (DataFrame): DataFrame containing match data for Serie A.
+    returns:
+        best_model (LogisticRegression): Trained Logistic Regression model.
+        evaluation_metrics (DataFrame): DataFrame containing evaluation metrics.
+        X_train_reduced (ndarray): Reduced training feature set.
+        X_test_reduced (ndarray): Reduced test feature set.
+        X_test_reduced_orig (ndarray): Original reduced test feature set before scaling.
+        selected_columns (list): List of selected feature names.
+        encoder (LabelEncoder): Encoder used to transform target labels.
+        match_ids_test (ndarray): Array of match IDs for the test set.
+    '''
+    matches_df = matches_in_SerieA.copy()
+    X, y, encoder, match_ids = _preprocessing(matches_df)
+    X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
+
+    # selección de características usando Mutual Information
+    selector = SelectKBest(lambda X, y: mutual_info_classif(X, y, random_state=666), k=50)
+    X_train_reduced = selector.fit_transform(X_train, y_train)
+    X_test_reduced = selector.transform(X_test)
+    X_test_reduced_orig = X_test_reduced.copy()
+    # obtenemos los nombres de las características seleccionadas
+    selected_columns = X.columns[selector.get_support()].tolist()
+
+    # entrenamiento del modelo (Logistic Regression, C=0.9319903015590866, l1_ratio=0.3035119926400068, penalty='elasticnet', solver='saga')
+    X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
+    best_model = LogisticRegression(random_state=42, max_iter=1000, C=0.9319903015590866, l1_ratio=0.3035119926400068, penalty='elasticnet', solver='saga')
+    best_model.fit(X_train_reduced, y_train)
+
+    # predicciones en el conjunto de prueba reducido
+    y_pred_reduced = best_model.predict(X_test_reduced)
+
+    # calculamos las métricas de evaluación y mostramos los resultados
+    evaluation_metrics = _show_metrics("Logistic Regression MI", best_model, X_train_reduced, X_test_reduced, y_train, y_test, y_pred_reduced)
+
+    return best_model, evaluation_metrics, X_train_reduced, X_test_reduced, X_test_reduced_orig, selected_columns, encoder, match_ids_test
+
+
 # --- FUNCIONES AUXILIARES ----------------------------------------------------------------------------------------------------------------------------
 def _preprocessing(matches_df_copy):
     '''
