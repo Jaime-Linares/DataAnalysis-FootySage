@@ -2,6 +2,7 @@ from src.fetch_data import get_competition_id_and_season_id, get_match_info
 from src.data_preparation import code_categorical_data_multiclass, divide_data_in_train_test, scale_data_train_test
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_score, recall_score, f1_score
 import shap
 import pandas as pd
@@ -402,7 +403,38 @@ def serieA_best_model(matches_in_SerieA):
     return best_model, evaluation_metrics, X_train_reduced, X_test_reduced, X_test_reduced_orig, selected_columns, encoder, match_ids_test
 
 
-# --- FUNCIONES AUXILIARES ----------------------------------------------------------------------------------------------------------------------------
+# --- FUNCIONES LIGUE 1 ----------------------------------------------------------------------------------------------------------------------------
+def ligue1_best_model(matches_in_Ligue1):
+    '''
+    Train and evaluate the best model (chosen during experimentation) for Ligue 1 matches.
+    params:
+        matches_in_Ligue1 (DataFrame): DataFrame containing match data for Ligue 1.
+    returns:
+        best_model (RandomForestClassifier): Trained Random Forest model.
+        evaluation_metrics (DataFrame): DataFrame containing evaluation metrics.
+        X_train (ndarray): Training feature set.
+        X_test (ndarray): Test feature set.
+        encoder (LabelEncoder): Encoder used to transform target labels.
+        match_ids_test (ndarray): Array of match IDs for the test set.
+    '''
+    matches_df = matches_in_Ligue1.copy()
+    X, y, encoder, match_ids = _preprocessing(matches_df)
+    X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
+
+    # entrenamiento del modelo (RandomForestClassifier, criterion='entropy', max_features='sqrt', max_depth=2, n_estimators=60, class_weight='balanced')
+    best_model = RandomForestClassifier(criterion='entropy', max_features='sqrt', max_depth=2, n_estimators=60, class_weight='balanced', random_state=42)
+    best_model.fit(X_train, y_train)
+
+    # predicciones en el conjunto de prueba
+    y_pred = best_model.predict(X_test)
+
+    # calculamos las métricas de evaluación y mostramos los resultados
+    evaluation_metrics = _show_metrics("Random Forest", best_model, X_train, X_test, y_train, y_test, y_pred)
+
+    return best_model, evaluation_metrics, X_train, X_test, encoder, match_ids_test
+
+
+# --- FUNCIONES AUXILIARES -------------------------------------------------------------------------------------------------------------------------
 def _preprocessing(matches_df_copy):
     '''
     Preprocesses the given DataFrame by copying it, extracting match IDs, and encoding the target variable.
