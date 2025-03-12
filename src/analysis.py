@@ -277,11 +277,11 @@ def force_plot_shap_team_matches(model, X_train, X_test_team, X_test_orig_team, 
 
 
 # --- FUNCIONES LA LIGA ----------------------------------------------------------------------------------------------------------------------------
-def laliga_best_model(matches_in_laliga):
+def laliga_best_model(matches_in_LaLiga):
     '''
     Train and evaluate the best model (chosen during experimentation) for La Liga matches.
     params:
-        matches_in_laliga (DataFrame): DataFrame containing match data for La Liga.
+        matches_in_LaLiga (DataFrame): DataFrame containing match data for La Liga.
     returns:
         best_model (LogisticRegression): Trained Logistic Regression model.
         evaluation_metrics (DataFrame): DataFrame containing evaluation metrics.
@@ -292,7 +292,7 @@ def laliga_best_model(matches_in_laliga):
         encoder (LabelEncoder): Encoder used to transform target labels.
         match_ids_test (ndarray): Array of match IDs for the test set.
     '''
-    matches_df = matches_in_laliga.copy()
+    matches_df = matches_in_LaLiga.copy()
     X, y, encoder, match_ids = _preprocessing(matches_df)
     X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
 
@@ -323,7 +323,7 @@ def premierleague_best_model(matches_in_PL):
     '''
     Train and evaluate the best model (chosen during experimentation) for Premier League matches.
     params:
-        matches_in_laliga (DataFrame): DataFrame containing match data for Premier League.
+        matches_in_PL (DataFrame): DataFrame containing match data for Premier League.
     returns:
         best_model (LogisticRegression): Trained Logistic Regression model.
         evaluation_metrics (DataFrame): DataFrame containing evaluation metrics.
@@ -365,7 +365,7 @@ def serieA_best_model(matches_in_SerieA):
     '''
     Train and evaluate the best model (chosen during experimentation) for Serie A matches.
     params:
-        matches_in_laliga (DataFrame): DataFrame containing match data for Serie A.
+        matches_in_SerieA (DataFrame): DataFrame containing match data for Serie A.
     returns:
         best_model (LogisticRegression): Trained Logistic Regression model.
         evaluation_metrics (DataFrame): DataFrame containing evaluation metrics.
