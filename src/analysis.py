@@ -99,7 +99,10 @@ def compute_shap_values(model, X_train, X_test, feature_names):
     returns:
         shap.Explanation: SHAP values computed for X_test.
     '''
-    explainer = shap.Explainer(model.predict_proba, X_train, feature_names=feature_names)
+    if hasattr(model, "estimators_"):  # verifica si es un modelo basado en árboles para usar el optimizador de SHAP para árboles
+        explainer = shap.TreeExplainer(model)
+    else:
+        explainer = shap.Explainer(model.predict_proba, X_train, feature_names=feature_names)
     shap_values = explainer(X_test)
     return shap_values
 
@@ -230,7 +233,10 @@ def force_plot_shap_team_matches(model, X_train, X_test_team, X_test_orig_team, 
         None: Displays SHAP force plots for the team's matches.
     '''
     competition_id, season_id = get_competition_id_and_season_id(competition_name, competition_gender, season_name)
-    explainer = shap.Explainer(model.predict_proba, X_train, feature_names=feature_names)
+    if hasattr(model, "estimators_"):
+        explainer = shap.TreeExplainer(model)
+    else:
+        explainer = shap.Explainer(model.predict_proba, X_train, feature_names=feature_names)
     shap_values_team = explainer(X_test_team)
     print(f"**Team analysis for {team_name} in {competition_name} {season_name} ({competition_gender})**")
 
