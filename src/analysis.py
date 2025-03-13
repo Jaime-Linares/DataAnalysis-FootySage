@@ -22,7 +22,7 @@ def logistic_regression_global_analysis(best_model_competition, feature_names_re
     returns:
         None: This function does not return any value. It generates bar charts showing the importance of features for each class.
     '''
-    coef_matrix = best_model_competition.coef_  # matriz de coeficientes (n_clases * n_features)
+    coef_matrix = best_model_competition.coef_  # matriz de coeficientes (n_classes * n_features)
     class_labels = encoder_competition.classes_
     num_features = len(feature_names_reduced_competition)
 
@@ -51,6 +51,41 @@ def logistic_regression_global_analysis(best_model_competition, feature_names_re
         plt.gca().invert_yaxis()
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.show()
+
+
+def random_forest_global_analysis(best_model_competition):
+    '''
+    Perform a global analysis of the competition using the provided best Random Forest model and encoder.
+    params:
+        best_model_competition (RandomForestClassifier): The best trained Random Forest model.
+    returns:
+        None: This function generates a bar chart showing the global importance of features.
+    '''
+    feature_importance_matrix = best_model_competition.feature_importances_
+    feature_names = best_model_competition.feature_names_in_
+    # identificamos las características sin importancia
+    nonzero_indices = np.where(feature_importance_matrix > 0)[0]
+    zero_indices = np.where(feature_importance_matrix == 0)[0]
+    zero_importance_features = [feature_names[i] for i in zero_indices]
+    print("Features with zero importance across all classes:")
+    print(zero_importance_features if len(zero_importance_features) > 0 else "None")
+    if len(nonzero_indices) == 0:
+        print("No significant features found in the Random Forest model.")
+        return
+    # ordenamos características por importancia
+    sorted_indices = np.argsort(feature_importance_matrix[nonzero_indices])[::-1]
+    sorted_features = [feature_names[i] for i in sorted_indices]
+    sorted_importance = feature_importance_matrix[nonzero_indices][sorted_indices]
+
+    # creamos el gráfico de importancia de características
+    plt.figure(figsize=(15, max(8, len(feature_names) * 0.3)))
+    plt.barh(sorted_features, sorted_importance, color='darkorange')
+    plt.xlabel("Feature Importance", fontsize=14)
+    plt.ylabel("Features", fontsize=14)
+    plt.title("Global Feature Importance in Random Forest Model", fontsize=16)
+    plt.gca().invert_yaxis()
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.show()
 
 
 def compute_shap_values(model, X_train, X_test, feature_names):
