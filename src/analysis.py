@@ -479,6 +479,37 @@ def ligue1_best_model(matches_in_Ligue1):
     return best_model, evaluation_metrics, X_train, X_test, encoder, match_ids_test
 
 
+# --- FUNCIONES BUNDESLIGA -------------------------------------------------------------------------------------------------------------------------
+def bundesliga_best_model(matches_in_Bundesliga):
+    '''
+    Train and evaluate the best model (chosen during experimentation) for Bundesliga matches.
+    params:
+        matches_in_Bundesliga (DataFrame): DataFrame containing match data for Bundesliga.
+    returns:
+        best_model (RandomForestClassifier): Trained Random Forest model.
+        evaluation_metrics (DataFrame): DataFrame containing evaluation metrics.
+        X_train (ndarray): Training feature set.
+        X_test (ndarray): Test feature set.
+        encoder (LabelEncoder): Encoder used to transform target labels.
+        match_ids_test (ndarray): Array of match IDs for the test set.
+    '''
+    matches_df = matches_in_Bundesliga.copy()
+    X, y, encoder, match_ids = _preprocessing(matches_df)
+    X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
+
+    # entrenamiento del modelo (RandomForestClassifier, criterion='entropy', max_features=None, max_depth=4, n_estimators=11, class_weight='balanced')
+    best_model = RandomForestClassifier(criterion='entropy', max_features=None, max_depth=4, n_estimators=11, class_weight='balanced', random_state=42)
+    best_model.fit(X_train, y_train)
+
+    # predicciones en el conjunto de prueba
+    y_pred = best_model.predict(X_test)
+
+    # calculamos las métricas de evaluación y mostramos los resultados
+    evaluation_metrics = _show_metrics("Random Forest", best_model, X_train, X_test, y_train, y_test, y_pred)
+
+    return best_model, evaluation_metrics, X_train, X_test, encoder, match_ids_test
+
+
 # --- FUNCIONES AUXILIARES -------------------------------------------------------------------------------------------------------------------------
 def _preprocessing(matches_df_copy):
     '''
