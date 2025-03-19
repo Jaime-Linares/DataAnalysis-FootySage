@@ -4,6 +4,7 @@ from sklearn.feature_selection import mutual_info_classif, SelectKBest
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.decomposition import PCA
 import shap
 import pandas as pd
 import numpy as np
@@ -508,6 +509,57 @@ def bundesliga_best_model(matches_in_Bundesliga):
     evaluation_metrics = _show_metrics("Random Forest", best_model, X_train, X_test, y_train, y_test, y_pred)
 
     return best_model, evaluation_metrics, X_train, X_test, encoder, match_ids_test
+
+
+# --- FUNCIONES LAS 5 GRANDES LIGAS ----------------------------------------------------------------------------------------------------------------
+def fiveMajorLeagues_best_model(matches_in_5MajorLeagues):
+    '''
+    Train and evaluate the best model (chosen during experimentation) for the five major leagues matches.
+    params:
+        matches_in_5MajorLeagues (DataFrame): DataFrame containing match data for the five major leagues.
+    returns:
+        best_model (LogisticRegression): Trained Logistic Regression model.
+        evaluation_metrics (DataFrame): DataFrame containing evaluation metrics.
+        X_train_reduced (ndarray): Reduced training feature set.
+        X_test_reduced (ndarray): Reduced test feature set.
+        X_test_reduced_orig (ndarray): Original reduced test feature set before scaling.
+        components (list): List of the PCs.
+        pca_analysis (DataFrame): Contribution of each feature to each PCA component.
+        encoder (LabelEncoder): Encoder used to transform target labels.
+        match_ids_test (ndarray): Array of match IDs for the test set.
+    '''
+    matches_df = matches_in_5MajorLeagues.copy()
+    X, y, encoder, match_ids = _preprocessing(matches_df)
+    X_train, X_test, y_train, y_test, match_ids_train, match_ids_test = divide_data_in_train_test(X, y, match_ids)
+
+    # escalamos los datos antes de la selección de características
+    X_train_scaled, X_test_scaled = scale_data_train_test(X_train, X_test, "standard")
+
+    # aplicamos PCA para reducción de dimensionalidad
+    pca = PCA(n_components=0.9, random_state=42)
+    X_train_pca = pca.fit_transform(X_train_scaled)
+    X_test_pca = pca.transform(X_test_scaled)
+    X_test_pca_orig = X_test_pca.copy()
+
+    # entrenamiento del modelo (Logistic Regression, C=0.7552401252141332, l1_ratio=0.5272059063689973, penalty='elasticnet', solver='saga')
+    best_model = LogisticRegression(C=0.7552401252141332, l1_ratio=0.5272059063689973, penalty='elasticnet', solver='saga', random_state=42, max_iter=1000)
+    best_model.fit(X_train_pca, y_train)
+
+    # predicciones en el conjunto de prueba reducido
+    y_pred_pca = best_model.predict(X_test_pca)
+
+    # calculamos las métricas de evaluación y mostramos los resultados
+    evaluation_metrics = _show_metrics("Logistic Regression PCA", best_model, X_train_pca, X_test_pca, y_train, y_test, y_pred_pca)
+
+    # análisis de componentes principales
+    components = [f"PC{i+1}" for i in range(pca.n_components_)]
+    pca_analysis = pd.DataFrame(
+        pca.components_, 
+        columns=X.columns,
+        index=components
+    )
+
+    return best_model, evaluation_metrics, X_train_pca, X_test_pca, X_test_pca_orig, components, pca_analysis, encoder, match_ids_test
 
 
 # --- FUNCIONES AUXILIARES -------------------------------------------------------------------------------------------------------------------------
