@@ -205,6 +205,8 @@ def filter_dfs_by_team(X_test, X_test_orig, match_ids_test, team_name, competiti
     team_match_ids = []
     for match_id in match_ids_test:
         match_info = get_match_info(competition_id, season_id, match_id)
+        if match_info is None:
+            continue
         home_team = match_info['home_team'].values[0]
         away_team = match_info['away_team'].values[0]
         if team_name in [home_team, away_team]:

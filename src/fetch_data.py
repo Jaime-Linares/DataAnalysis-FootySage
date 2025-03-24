@@ -68,6 +68,6 @@ def get_match_info(competition_id, season_id, match_id):
     matches_competition = sb.matches(competition_id=competition_id, season_id=season_id)
     match_info = matches_competition[matches_competition['match_id'] == match_id]
     if match_info.shape[0] == 0:
-        raise ValueError('No such match info found. Please check the competition_id, season_id and match_id.')
+        return None
     return match_info
 
