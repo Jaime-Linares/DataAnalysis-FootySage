@@ -13,6 +13,8 @@
   - `processed/`: Partidos procesados con variables limpias.
   - `reduced/`: Datos finales listos para el modelado.
 
+- `models/`: Contiene los mejores modelos entrenados para cada competición.
+
 - `src/`: Contiene el core del procesamiento y análisis:
   - Preprocesamiento y extracción desde la API de StatsBomb.
   - Funciones para entrenamiento, evaluación y análisis SHAP.
