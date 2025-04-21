@@ -565,6 +565,10 @@ def top5Leagues_best_model(matches_in_Top5Leagues):
     best_model = RandomForestClassifier(criterion='gini', max_features='log2', max_depth=6, n_estimators=56, random_state=42)
     best_model.fit(X_train_resampled, y_train_resampled, sample_weight=sample_weights)
 
+    # guardamos el modelo entrenado en un archivo .pkl
+    os.makedirs('models', exist_ok=True)
+    joblib.dump(best_model, 'models/Top5Leagues_model.pkl')
+
     # predicciones en el conjunto de prueba
     y_pred = best_model.predict(X_test)
 
