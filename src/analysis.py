@@ -10,6 +10,8 @@ import shap
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+import joblib
 
 
 
@@ -359,6 +361,10 @@ def laliga_best_model(matches_in_LaLiga):
     best_model = LogisticRegression(random_state=42, max_iter=1000, C=0.29354310869235306, penalty='l1', solver='saga')
     best_model.fit(X_train_reduced, y_train)
 
+    # guardamos el modelo entrenado en un archivo .pkl
+    os.makedirs('models', exist_ok=True)
+    joblib.dump(best_model, 'models/LaLiga_model.pkl')
+
     # predicciones en el conjunto de prueba reducido
     y_pred_reduced = best_model.predict(X_test_reduced)
 
@@ -400,6 +406,10 @@ def premierleague_best_model(matches_in_PL):
     X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
     best_model = LogisticRegression(random_state=42, max_iter=1000, C=0.6261372210153997, l1_ratio=0.5193180715867101, penalty='elasticnet', solver='saga')
     best_model.fit(X_train_reduced, y_train)
+
+    # guardamos el modelo entrenado en un archivo .pkl
+    os.makedirs('models', exist_ok=True)
+    joblib.dump(best_model, 'models/PremierLeague_model.pkl')
 
     # predicciones en el conjunto de prueba reducido
     y_pred_reduced = best_model.predict(X_test_reduced)
@@ -443,6 +453,10 @@ def serieA_best_model(matches_in_SerieA):
     best_model = LogisticRegression(random_state=42, max_iter=1000, C=0.9319903015590866, l1_ratio=0.3035119926400068, penalty='elasticnet', solver='saga')
     best_model.fit(X_train_reduced, y_train)
 
+    # guardamos el modelo entrenado en un archivo .pkl
+    os.makedirs('models', exist_ok=True)
+    joblib.dump(best_model, 'models/SerieA_model.pkl')
+
     # predicciones en el conjunto de prueba reducido
     y_pred_reduced = best_model.predict(X_test_reduced)
 
@@ -474,6 +488,10 @@ def ligue1_best_model(matches_in_Ligue1):
     best_model = RandomForestClassifier(criterion='entropy', max_features='sqrt', max_depth=2, n_estimators=60, class_weight='balanced', random_state=42)
     best_model.fit(X_train, y_train)
 
+    # guardamos el modelo entrenado en un archivo .pkl
+    os.makedirs('models', exist_ok=True)
+    joblib.dump(best_model, 'models/Ligue1_model.pkl')
+
     # predicciones en el conjunto de prueba
     y_pred = best_model.predict(X_test)
 
@@ -504,6 +522,10 @@ def bundesliga_best_model(matches_in_Bundesliga):
     # entrenamiento del modelo (RandomForestClassifier, criterion='entropy', max_features=None, max_depth=4, n_estimators=11, class_weight='balanced')
     best_model = RandomForestClassifier(criterion='entropy', max_features=None, max_depth=4, n_estimators=11, class_weight='balanced', random_state=42)
     best_model.fit(X_train, y_train)
+
+    # guardamos el modelo entrenado en un archivo .pkl
+    os.makedirs('models', exist_ok=True)
+    joblib.dump(best_model, 'models/1Bundesliga_model.pkl')
 
     # predicciones en el conjunto de prueba
     y_pred = best_model.predict(X_test)
