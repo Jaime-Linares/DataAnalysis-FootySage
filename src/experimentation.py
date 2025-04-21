@@ -475,7 +475,7 @@ class ExperimentLauncher:
         best_params = {k.replace('classifier__', ''): v for k, v in random_search.best_params_.items()}
         print("Best hyperparameters:", best_params)
         # mejor modelo
-        X_train, X_test = scale_data_train_test(X_train, X_test, "standard")
+        X_train, X_test, _ = scale_data_train_test(X_train, X_test, "standard")
         best_model = LogisticRegression(**best_params, random_state=42, max_iter=3000)
         best_model.fit(X_train, y_train)
 
@@ -530,7 +530,7 @@ class ExperimentLauncher:
         best_params = {k.replace('classifier__', ''): v for k, v in random_search.best_params_.items()}
         print("Best hyperparameters:", best_params)
         # mejor modelo
-        X_train_resampled, X_test = scale_data_train_test(X_train_resampled, X_test, "standard")
+        X_train_resampled, X_test, _ = scale_data_train_test(X_train_resampled, X_test, "standard")
         best_model = LogisticRegression(**best_params, random_state=42, max_iter=3000)
         best_model.fit(X_train_resampled, y_train_resampled, sample_weight=sample_weights)
 
@@ -584,7 +584,7 @@ class ExperimentLauncher:
         best_params_reduced = {k.replace('classifier__', ''): v for k, v in random_search.best_params_.items()}
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo
-        X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
+        X_train_reduced, X_test_reduced, _ = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
         best_model_reduced = LogisticRegression(**best_params_reduced, random_state=42, max_iter=1000)
         best_model_reduced.fit(X_train_reduced, y_train)
 
@@ -687,7 +687,7 @@ class ExperimentLauncher:
         best_params = {k.replace('classifier__', ''): v for k, v in random_search.best_params_.items()}
         print("Best hyperparameters:", best_params)
         # mejor modelo
-        X_train, X_test = scale_data_train_test(X_train, X_test, "minmax")
+        X_train, X_test, _ = scale_data_train_test(X_train, X_test, "minmax")
         best_model = KNeighborsClassifier(**best_params)
         best_model.fit(X_train, y_train)
 
@@ -740,7 +740,7 @@ class ExperimentLauncher:
         best_params_reduced = {k.replace('classifier__', ''): v for k, v in random_search.best_params_.items()}
         print("Best hyperparameters:", best_params_reduced)
         # mejor modelo
-        X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "minmax")
+        X_train_reduced, X_test_reduced, _ = scale_data_train_test(X_train_reduced, X_test_reduced, "minmax")
         best_model_reduced = KNeighborsClassifier(**best_params_reduced)
         best_model_reduced.fit(X_train_reduced, y_train)
 

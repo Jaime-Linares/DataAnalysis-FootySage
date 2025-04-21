@@ -27,7 +27,7 @@ def scale_data_train_test(X_train, X_test, scaler):
         X_test (DataFrame): A DataFrame containing the test data.
         scaler (str): The scaler to use.
     returns:
-        tuple: A tuple containing the scaled training and test data.
+        tuple: A tuple containing the scaled training, test data and the scaler.
     '''
     if scaler == 'standard':
         scaler = StandardScaler()
@@ -39,7 +39,7 @@ def scale_data_train_test(X_train, X_test, scaler):
         X_test = scaler.transform(X_test)
     else:
         raise ValueError('Invalid scaler. Valid scalers are: standard, minmax')
-    return X_train, X_test
+    return X_train, X_test, scaler
 
 
 def divide_data_in_train_test(data, target, match_ids, test_size=0.2, stratify=True):

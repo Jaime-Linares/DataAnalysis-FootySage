@@ -357,13 +357,14 @@ def laliga_best_model(matches_in_LaLiga):
     selected_columns = X.columns[selector.get_support()].tolist()
 
     # entrenamiento del modelo (Logistic Regression, C=0.29354310869235306, penalty='l1', solver='saga')
-    X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
+    X_train_reduced, X_test_reduced, scaler = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
     best_model = LogisticRegression(random_state=42, max_iter=1000, C=0.29354310869235306, penalty='l1', solver='saga')
     best_model.fit(X_train_reduced, y_train)
 
-    # guardamos el modelo entrenado en un archivo .pkl
+    # guardamos el modelo entrenado y el escalado en un archivo .pkl
     os.makedirs('models', exist_ok=True)
     joblib.dump(best_model, 'models/LaLiga_model.pkl')
+    joblib.dump(scaler, "models/LaLiga_scaler.pkl")
 
     # predicciones en el conjunto de prueba reducido
     y_pred_reduced = best_model.predict(X_test_reduced)
@@ -403,13 +404,14 @@ def premierleague_best_model(matches_in_PL):
     selected_columns = X.columns[selector.get_support()].tolist()
 
     # entrenamiento del modelo (Logistic Regression, C=0.6261372210153997, l1_ratio=0.5193180715867101, penalty='elasticnet', solver='saga')
-    X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
+    X_train_reduced, X_test_reduced, scaler = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
     best_model = LogisticRegression(random_state=42, max_iter=1000, C=0.6261372210153997, l1_ratio=0.5193180715867101, penalty='elasticnet', solver='saga')
     best_model.fit(X_train_reduced, y_train)
 
-    # guardamos el modelo entrenado en un archivo .pkl
+    # guardamos el modelo entrenado y el escalado en un archivo .pkl
     os.makedirs('models', exist_ok=True)
     joblib.dump(best_model, 'models/PremierLeague_model.pkl')
+    joblib.dump(scaler, "models/PremierLeague_scaler.pkl")
 
     # predicciones en el conjunto de prueba reducido
     y_pred_reduced = best_model.predict(X_test_reduced)
@@ -449,13 +451,14 @@ def serieA_best_model(matches_in_SerieA):
     selected_columns = X.columns[selector.get_support()].tolist()
 
     # entrenamiento del modelo (Logistic Regression, C=0.9319903015590866, l1_ratio=0.3035119926400068, penalty='elasticnet', solver='saga')
-    X_train_reduced, X_test_reduced = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
+    X_train_reduced, X_test_reduced, scaler = scale_data_train_test(X_train_reduced, X_test_reduced, "standard")
     best_model = LogisticRegression(random_state=42, max_iter=1000, C=0.9319903015590866, l1_ratio=0.3035119926400068, penalty='elasticnet', solver='saga')
     best_model.fit(X_train_reduced, y_train)
 
-    # guardamos el modelo entrenado en un archivo .pkl
+    # guardamos el modelo entrenado y el escalado en un archivo .pkl
     os.makedirs('models', exist_ok=True)
     joblib.dump(best_model, 'models/SerieA_model.pkl')
+    joblib.dump(scaler, "models/SerieA_scaler.pkl")
 
     # predicciones en el conjunto de prueba reducido
     y_pred_reduced = best_model.predict(X_test_reduced)
