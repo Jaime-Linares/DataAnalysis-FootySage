@@ -25,6 +25,8 @@
   - `2_analysis_<Liga>.ipynb`: Análisis de explicabilidad individual.
   - `2_analysis_Top5Leagues.ipynb`: Análisis de explicabilidad de las ligas de manera global.
 
+- `reports/`: Contiene los informes de cada competición analizada en formato .pdf, es decir, los análisis de explicabilidad de las ligas que estan en formato .ipynb en formato .pdf por si quieren descargarse solo los informes.
+
 ##  Preparación de Datos y Modelado
 
 - **Modelos**: Se prueban distintos algoritmos de ML (Random Forest, Logistic Regression, etc.) con distintas técnicas de preprocesado (PCA, MI, oversampling, etc.).
