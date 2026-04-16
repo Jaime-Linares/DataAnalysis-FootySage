@@ -312,7 +312,7 @@ def force_plot_shap_team_matches(model, X_train, X_test_team, X_test_orig_team, 
             shap_exp = shap.Explanation(
                 values=shap_values_team.values[i, :, class_idx], 
                 base_values=shap_values_team.base_values[i, class_idx],
-                data=X_test_team_array[i],
+                data=X_test_orig_team_array[i],
                 feature_names=feature_names
             )
             shap.force_plot(
@@ -321,7 +321,7 @@ def force_plot_shap_team_matches(model, X_train, X_test_team, X_test_orig_team, 
                 shap_exp.data,
                 feature_names=shap_exp.feature_names,
                 matplotlib=True,
-                text_rotation=80,
+                text_rotation=90,
                 show=False
             )
             plt.title(f"SHAP Force Plot for class: {class_name}", fontsize=15, pad=90)
